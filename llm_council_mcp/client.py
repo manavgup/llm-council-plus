@@ -1,2 +1,166 @@
-"""HTTP client for LLM Council Plus backend. Implemented in next task."""
-# TODO: implement
+"""HTTP client for LLM Council Plus backend."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from collections.abc import AsyncIterator
+from typing import Any
+
+import httpx
+
+
+class CouncilClient:
+    """Async HTTP client for the LLM Council Plus REST API."""
+
+    def __init__(self, base_url: str = "http://localhost:8001", timeout: float = 180.0):
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+        self._client: httpx.AsyncClient | None = None
+
+    async def __aenter__(self) -> CouncilClient:
+        self._client = httpx.AsyncClient(timeout=self.timeout)
+        return self
+
+    async def __aexit__(self, *_: Any) -> None:
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    @property
+    def client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            raise RuntimeError("CouncilClient must be used as an async context manager")
+        return self._client
+
+    # ── Health ──────────────────────────────────────────────────────────────
+
+    async def health(self) -> dict:
+        resp = await self.client.get(f"{self.base_url}/api/health")
+        resp.raise_for_status()
+        return resp.json()
+
+    # ── Settings ─────────────────────────────────────────────────────────────
+
+    async def get_settings(self) -> dict:
+        resp = await self.client.get(f"{self.base_url}/api/settings")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def update_settings(self, **kwargs: Any) -> dict:
+        resp = await self.client.put(
+            f"{self.base_url}/api/settings",
+            json=kwargs,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    # ── Models ───────────────────────────────────────────────────────────────
+
+    async def get_openrouter_models(self) -> list[dict]:
+        try:
+            resp = await self.client.get(f"{self.base_url}/api/models")
+            resp.raise_for_status()
+            return resp.json().get("models", [])
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            return []
+
+    async def get_direct_models(self) -> list[dict]:
+        try:
+            resp = await self.client.get(f"{self.base_url}/api/models/direct")
+            resp.raise_for_status()
+            return resp.json().get("models", [])
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            return []
+
+    async def get_ollama_models(self) -> list[dict]:
+        try:
+            resp = await self.client.get(f"{self.base_url}/api/ollama/tags")
+            resp.raise_for_status()
+            return resp.json().get("models", [])
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            return []
+
+    async def get_custom_models(self) -> list[dict]:
+        try:
+            resp = await self.client.get(f"{self.base_url}/api/custom-endpoint/models")
+            resp.raise_for_status()
+            return resp.json().get("models", [])
+        except (httpx.HTTPStatusError, httpx.RequestError):
+            return []
+
+    async def get_all_models(self) -> list[dict]:
+        """Aggregate models from all providers."""
+        results = []
+        for models in await asyncio.gather(
+            self.get_openrouter_models(),
+            self.get_direct_models(),
+            self.get_ollama_models(),
+            self.get_custom_models(),
+            return_exceptions=True,
+        ):
+            if isinstance(models, list):
+                results.extend(models)
+        return results
+
+    # ── Conversations ─────────────────────────────────────────────────────────
+
+    async def list_conversations(self) -> list[dict]:
+        resp = await self.client.get(f"{self.base_url}/api/conversations")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def create_conversation(self) -> dict:
+        resp = await self.client.post(
+            f"{self.base_url}/api/conversations",
+            json={},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def get_conversation(self, conversation_id: str) -> dict:
+        resp = await self.client.get(
+            f"{self.base_url}/api/conversations/{conversation_id}"
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    # ── Streaming ─────────────────────────────────────────────────────────────
+
+    async def stream_message(
+        self,
+        conversation_id: str,
+        content: str,
+        web_search: bool = False,
+        execution_mode: str = "full",
+    ) -> AsyncIterator[dict]:
+        """Stream SSE events from the backend.
+
+        Yields parsed event dicts (each has a 'type' field).
+        Execution modes: 'full', 'chat_ranking', 'chat_only'
+        """
+        url = f"{self.base_url}/api/conversations/{conversation_id}/message/stream"
+        payload = {
+            "content": content,
+            "web_search": web_search,
+            "execution_mode": execution_mode,
+        }
+        async with self.client.stream("POST", url, json=payload) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if line.startswith("data: "):
+                    raw = line[len("data: "):]
+                    try:
+                        yield json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+
+    # ── Provider Testing ──────────────────────────────────────────────────────
+
+    async def test_provider(self, provider: str, api_key: str | None = None) -> dict:
+        resp = await self.client.post(
+            f"{self.base_url}/api/settings/test-provider",
+            json={"provider": provider, "api_key": api_key},
+        )
+        resp.raise_for_status()
+        return resp.json()
