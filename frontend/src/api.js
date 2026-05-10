@@ -156,6 +156,23 @@ export const api = {
   },
 
   /**
+   * Test TinyFish API key.
+   */
+  async testTinyfishKey(apiKey) {
+    const response = await fetch(`${API_BASE}/api/settings/test-tinyfish`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to test API key');
+    }
+    return response.json();
+  },
+
+  /**
    * Test Serper API key.
    */
   async testSerperKey(apiKey) {

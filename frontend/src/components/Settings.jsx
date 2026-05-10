@@ -70,6 +70,9 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
   const [serperTestResult, setSerperTestResult] = useState(null);
   const [tavilyTestResult, setTavilyTestResult] = useState(null);
   const [braveTestResult, setBraveTestResult] = useState(null);
+  const [tinyfishApiKey, setTinyfishApiKey] = useState('');
+  const [isTestingTinyfish, setIsTestingTinyfish] = useState(false);
+  const [tinyfishTestResult, setTinyfishTestResult] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Enabled Providers (which sources are available)
@@ -608,6 +611,36 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
       setBraveTestResult({ success: false, message: 'Test failed' });
     } finally {
       setIsTestingBrave(false);
+    }
+  };
+
+  const handleTestTinyfish = async () => {
+    if (!tinyfishApiKey && !settings.tinyfish_api_key_set) {
+      setTinyfishTestResult({ success: false, message: 'Please enter an API key first' });
+      return;
+    }
+    setIsTestingTinyfish(true);
+    setTinyfishTestResult(null);
+    try {
+      const keyToTest = tinyfishApiKey || null;
+      const result = await api.testTinyfishKey(keyToTest);
+      setTinyfishTestResult(result);
+
+      // Auto-save API key AND provider selection if validation succeeds
+      if (result.success && tinyfishApiKey) {
+        await api.updateSettings({
+          tinyfish_api_key: tinyfishApiKey,
+          search_provider: 'tinyfish'
+        });
+        setTinyfishApiKey('');
+        await loadSettings();
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (err) {
+      setTinyfishTestResult({ success: false, message: 'Test failed' });
+    } finally {
+      setIsTestingTinyfish(false);
     }
   };
 
@@ -1579,6 +1612,13 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
                 isTestingBrave={isTestingBrave}
                 braveTestResult={braveTestResult}
                 setBraveTestResult={setBraveTestResult}
+                // TinyFish
+                tinyfishApiKey={tinyfishApiKey}
+                setTinyfishApiKey={setTinyfishApiKey}
+                handleTestTinyfish={handleTestTinyfish}
+                isTestingTinyfish={isTestingTinyfish}
+                tinyfishTestResult={tinyfishTestResult}
+                setTinyfishTestResult={setTinyfishTestResult}
                 // Other Settings
                 fullContentResults={fullContentResults}
                 setFullContentResults={setFullContentResults}

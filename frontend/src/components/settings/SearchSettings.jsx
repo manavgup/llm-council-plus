@@ -29,6 +29,13 @@ const SEARCH_PROVIDERS = [
         requiresKey: true,
         keyType: 'brave',
     },
+    {
+        id: 'tinyfish',
+        name: 'TinyFish',
+        description: 'AI-powered search with free tier (5 req/min). Free API key, no credit card. Includes batch content fetching.',
+        requiresKey: true,
+        keyType: 'tinyfish',
+    },
 ];
 
 export default function SearchSettings({
@@ -56,6 +63,13 @@ export default function SearchSettings({
     isTestingBrave,
     braveTestResult,
     setBraveTestResult,
+    // TinyFish
+    tinyfishApiKey,
+    setTinyfishApiKey,
+    handleTestTinyfish,
+    isTestingTinyfish,
+    tinyfishTestResult,
+    setTinyfishTestResult,
     // Other Settings
     fullContentResults,
     setFullContentResults,
@@ -195,6 +209,52 @@ export default function SearchSettings({
                                         {braveTestResult.success ? '✓' : '✗'} {braveTestResult.message}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Inline API Key Input for TinyFish */}
+                        {selectedSearchProvider === 'tinyfish' && provider.id === 'tinyfish' && (
+                            <div className="inline-api-key-section">
+                                <div className="api-key-input-row">
+                                    <input
+                                        type="password"
+                                        placeholder={settings?.tinyfish_api_key_set ? '••••••••••••••••' : 'Enter TinyFish API key'}
+                                        value={tinyfishApiKey}
+                                        onChange={e => {
+                                            setTinyfishApiKey(e.target.value);
+                                            if (setTinyfishTestResult) setTinyfishTestResult(null);
+                                        }}
+                                        className={settings?.tinyfish_api_key_set && !tinyfishApiKey ? 'key-configured' : ''}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="test-button"
+                                        onClick={handleTestTinyfish}
+                                        disabled={isTestingTinyfish || (!tinyfishApiKey && !settings?.tinyfish_api_key_set)}
+                                    >
+                                        {isTestingTinyfish ? 'Testing...' : (settings?.tinyfish_api_key_set && !tinyfishApiKey ? 'Retest' : 'Test')}
+                                    </button>
+                                </div>
+                                {settings?.tinyfish_api_key_set && !tinyfishApiKey && (
+                                    <div className="key-status set">✓ API key configured</div>
+                                )}
+                                {tinyfishTestResult && (
+                                    <div className={`test-result ${tinyfishTestResult.success ? 'success' : 'error'}`}>
+                                        {tinyfishTestResult.success ? '✓' : '✗'} {tinyfishTestResult.message}
+                                    </div>
+                                )}
+                                <div className="rate-limit-notice" style={{ marginTop: '8px', fontSize: '12px', color: '#94a3b8' }}>
+                                    ⚠ Free tier: 5 searches/min. Upgrade at <a href="https://agent.tinyfish.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>agent.tinyfish.ai</a> for higher limits.
+                                </div>
+                                <a
+                                    href="https://agent.tinyfish.ai/api-keys"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="api-key-link"
+                                    style={{ marginTop: '8px', display: 'inline-block', fontSize: '12px', color: '#60a5fa' }}
+                                >
+                                    Get free API key at agent.tinyfish.ai →
+                                </a>
                             </div>
                         )}
                     </div>
