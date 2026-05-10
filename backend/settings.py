@@ -77,6 +77,7 @@ class Settings(BaseModel):
     tavily_api_key: Optional[str] = None
     brave_api_key: Optional[str] = None
     serper_api_key: Optional[str] = None
+    tinyfish_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None

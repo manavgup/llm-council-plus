@@ -175,6 +175,8 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                     os.environ["TAVILY_API_KEY"] = settings.tavily_api_key
                 if settings.brave_api_key and provider == SearchProvider.BRAVE:
                     os.environ["BRAVE_API_KEY"] = settings.brave_api_key
+                if settings.tinyfish_api_key and provider == SearchProvider.TINYFISH:
+                    os.environ["TINYFISH_API_KEY"] = settings.tinyfish_api_key
 
                 yield f"data: {json.dumps({'type': 'search_start', 'data': {'provider': provider.value}})}\n\n"
 
@@ -352,6 +354,7 @@ class UpdateSettingsRequest(BaseModel):
     serper_api_key: Optional[str] = None
     tavily_api_key: Optional[str] = None
     brave_api_key: Optional[str] = None
+    tinyfish_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
@@ -412,6 +415,7 @@ async def get_app_settings():
         "serper_api_key_set": bool(settings.serper_api_key),
         "tavily_api_key_set": bool(settings.tavily_api_key),
         "brave_api_key_set": bool(settings.brave_api_key),
+        "tinyfish_api_key_set": bool(settings.tinyfish_api_key),
         "openrouter_api_key_set": bool(settings.openrouter_api_key),
         "openai_api_key_set": bool(settings.openai_api_key),
         "anthropic_api_key_set": bool(settings.anthropic_api_key),
@@ -428,7 +432,7 @@ async def get_app_settings():
         # Council Configuration (unified)
         "council_models": settings.council_models,
         "chairman_model": settings.chairman_model,
-        
+
         # Remote/Local filters
         "council_member_filters": settings.council_member_filters,
         "chairman_filter": settings.chairman_filter,
@@ -537,6 +541,11 @@ async def update_app_settings(request: UpdateSettingsRequest):
         if request.brave_api_key:
             os.environ["BRAVE_API_KEY"] = request.brave_api_key
 
+    if request.tinyfish_api_key is not None:
+        updates["tinyfish_api_key"] = request.tinyfish_api_key
+        if request.tinyfish_api_key:
+            os.environ["TINYFISH_API_KEY"] = request.tinyfish_api_key
+
     if request.openrouter_api_key is not None:
         updates["openrouter_api_key"] = request.openrouter_api_key
         
@@ -624,6 +633,7 @@ async def update_app_settings(request: UpdateSettingsRequest):
         "serper_api_key_set": bool(settings.serper_api_key),
         "tavily_api_key_set": bool(settings.tavily_api_key),
         "brave_api_key_set": bool(settings.brave_api_key),
+        "tinyfish_api_key_set": bool(settings.tinyfish_api_key),
         "openrouter_api_key_set": bool(settings.openrouter_api_key),
         "openai_api_key_set": bool(settings.openai_api_key),
         "anthropic_api_key_set": bool(settings.anthropic_api_key),
@@ -760,6 +770,38 @@ async def test_serper_api(request: TestSerperRequest):
                     "X-API-KEY": request.api_key or settings.serper_api_key,
                     "Content-Type": "application/json",
                 },
+            )
+
+            if response.status_code == 200:
+                return {"success": True, "message": "API key is valid"}
+            elif response.status_code == 401 or response.status_code == 403:
+                return {"success": False, "message": "Invalid API key"}
+            else:
+                return {"success": False, "message": f"API error: {response.status_code}"}
+
+    except httpx.TimeoutException:
+        return {"success": False, "message": "Request timed out"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+class TestTinyfishRequest(BaseModel):
+    """Request to test TinyFish API key."""
+    api_key: str | None = None
+
+
+@app.post("/api/settings/test-tinyfish")
+async def test_tinyfish_api(request: TestTinyfishRequest):
+    """Test TinyFish API key with a simple search."""
+    import httpx
+    settings = get_settings()
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(
+                "https://api.search.tinyfish.ai/",
+                params={"query": "test"},
+                headers={"X-API-Key": request.api_key or settings.tinyfish_api_key},
             )
 
             if response.status_code == 200:
