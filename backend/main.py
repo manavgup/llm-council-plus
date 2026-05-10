@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -14,7 +14,7 @@ import asyncio
 from . import storage
 from .council import generate_conversation_title, generate_search_query, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings, PROVIDERS
 from .search import perform_web_search, SearchProvider
-from .settings import get_settings, update_settings, Settings, DEFAULT_COUNCIL_MODELS, DEFAULT_CHAIRMAN_MODEL, AVAILABLE_MODELS
+from .settings import get_settings, save_settings, update_settings, Settings, DEFAULT_COUNCIL_MODELS, DEFAULT_CHAIRMAN_MODEL, AVAILABLE_MODELS
 
 app = FastAPI(title="LLM Council Plus API")
 
@@ -469,6 +469,40 @@ async def get_default_settings():
         "stage2_prompt": STAGE2_PROMPT_DEFAULT,
         "stage3_prompt": STAGE3_PROMPT_DEFAULT,
     }
+
+
+@app.get("/api/settings/export")
+async def export_settings():
+    """Export complete settings as a downloadable JSON file (includes actual API key values)."""
+    settings = get_settings()
+    content = json.dumps(settings.model_dump(mode="json"), indent=2)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=council-settings.json"},
+    )
+
+
+@app.post("/api/settings/import")
+async def import_settings(request: Request):
+    """Import settings from a full settings JSON blob."""
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    try:
+        new_settings = Settings(**data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid settings: {e}")
+    save_settings(new_settings)
+    return {"status": "imported", "message": "Settings imported successfully"}
+
+
+@app.post("/api/settings/reset")
+async def reset_settings():
+    """Reset all settings to defaults."""
+    save_settings(Settings())
+    return {"status": "reset", "message": "Settings reset to defaults"}
 
 
 @app.put("/api/settings")
