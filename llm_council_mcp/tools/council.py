@@ -186,8 +186,11 @@ def register(server, base_url: str) -> None:
             data = json.loads(config_json)
         except json.JSONDecodeError as e:
             return f"Error: invalid JSON — {e}"
-        async with CouncilClient(base_url) as client:
-            await client.import_settings(data)
+        try:
+            async with CouncilClient(base_url) as client:
+                await client.import_settings(data)
+        except Exception as e:
+            return f"Error: import failed — {e}"
         return "Configuration imported successfully."
 
     @server.tool(description=(

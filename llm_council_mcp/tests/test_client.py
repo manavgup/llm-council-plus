@@ -90,3 +90,37 @@ async def test_stream_message_yields_events():
     assert len(events) == 3
     assert events[0]["type"] == "stage1_start"
     assert events[2]["type"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_export_settings():
+    with respx.mock:
+        respx.get("http://localhost:8001/api/settings/export").mock(
+            return_value=httpx.Response(200, json={"council_models": ["openai:gpt-4.1"], "openai_api_key": "sk-test"})
+        )
+        async with CouncilClient() as client:
+            data = await client.export_settings()
+        assert data["council_models"] == ["openai:gpt-4.1"]
+        assert data["openai_api_key"] == "sk-test"
+
+
+@pytest.mark.asyncio
+async def test_import_settings():
+    with respx.mock:
+        respx.post("http://localhost:8001/api/settings/import").mock(
+            return_value=httpx.Response(200, json={"status": "imported"})
+        )
+        async with CouncilClient() as client:
+            result = await client.import_settings({"council_models": ["openai:gpt-4.1", "anthropic:claude-sonnet-4"]})
+        assert result["status"] == "imported"
+
+
+@pytest.mark.asyncio
+async def test_reset_settings():
+    with respx.mock:
+        respx.post("http://localhost:8001/api/settings/reset").mock(
+            return_value=httpx.Response(200, json={"status": "reset"})
+        )
+        async with CouncilClient() as client:
+            result = await client.reset_settings()
+        assert result["status"] == "reset"

@@ -1,6 +1,6 @@
 ---
 name: llm-council-api
-version: 0.3.0
+version: 0.4.0
 description: Use when interacting with LLM Council Plus via HTTP API — configuring the council, running deliberations, listing models, or managing conversations — especially when the MCP server is unavailable, connection is stale, or direct REST access is preferred. Triggers on requests like "ask the council", "configure models", "run a deliberation", "check council health", or any manipulation of the LLM Council Plus system.
 ---
 
@@ -28,6 +28,9 @@ LLM Council Plus is a 3-stage multi-LLM deliberation system. This skill lets you
 | Get conversation | GET | `/api/conversations/{id}` |
 | Run deliberation (stream) | POST | `/api/conversations/{id}/message/stream` |
 | Test a provider | POST | `/api/settings/test-provider` |
+| Export settings (backup) | GET | `/api/settings/export` |
+| Import settings (restore) | POST | `/api/settings/import` |
+| Reset settings to defaults | POST | `/api/settings/reset` |
 
 **Model ID prefix format:**
 ```
@@ -96,6 +99,63 @@ All fields are optional — only provided fields are updated.
 - `"full"` — all 3 stages (individual → peer review → chairman synthesis)
 - `"chat_ranking"` — stages 1+2 (no chairman synthesis)
 - `"chat_only"` — stage 1 only (fastest, individual responses)
+
+---
+
+### 3b. Configure System Prompts and Provider Toggles
+
+System prompts and provider toggles are set via the same `PUT /api/settings` endpoint:
+
+```bash
+# Update Stage 1 system prompt
+curl -X PUT http://localhost:8001/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stage1_prompt": "You are an expert analyst. Answer with evidence and cite sources.",
+    "stage2_prompt": "Rank the responses below by accuracy and depth.",
+    "stage3_prompt": "Synthesize the best elements from all responses into a definitive answer."
+  }'
+
+# Enable/disable providers for council selection
+curl -X PUT http://localhost:8001/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled_providers": {"openrouter": true, "ollama": false, "groq": true, "direct": false},
+    "direct_provider_toggles": {"openai": true, "anthropic": true, "google": false}
+  }'
+```
+
+**`enabled_providers` keys:** `openrouter`, `ollama`, `groq`, `direct` (master toggle for all direct), `custom`  
+**`direct_provider_toggles` keys:** `openai`, `anthropic`, `google`, `mistral`, `deepseek`, `groq`
+
+---
+
+### 3c. Set API Keys
+
+```bash
+# Set an LLM provider API key
+curl -X PUT http://localhost:8001/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{"openrouter_api_key": "sk-or-...", "openai_api_key": "sk-..."}'
+```
+
+**All API key field names for `PUT /api/settings`:**
+
+| Provider | Field name |
+|----------|-----------|
+| OpenRouter | `openrouter_api_key` |
+| OpenAI | `openai_api_key` |
+| Anthropic | `anthropic_api_key` |
+| Google | `google_api_key` |
+| Mistral | `mistral_api_key` |
+| DeepSeek | `deepseek_api_key` |
+| Groq | `groq_api_key` |
+| TinyFish | `tinyfish_api_key` |
+| Tavily | `tavily_api_key` |
+| Brave | `brave_api_key` |
+| Serper | `serper_api_key` |
+
+Note: `GET /api/settings` returns `*_api_key_set` booleans for security. Use `GET /api/settings/export` to retrieve actual key values.
 
 ---
 
@@ -234,6 +294,42 @@ async def get_conversation(conv_id, base_url="http://localhost:8001"):
             if s3:
                 print("A (chairman):", s3.get("response", "")[:500])
     return conv
+```
+
+---
+
+## Backup and Restore
+
+```bash
+# Export full settings (includes actual API key values)
+curl http://localhost:8001/api/settings/export -o council-settings.json
+
+# Import settings from backup
+curl -X POST http://localhost:8001/api/settings/import \
+  -H "Content-Type: application/json" \
+  -d @council-settings.json
+
+# Reset all settings to factory defaults (clears API keys and custom config)
+curl -X POST http://localhost:8001/api/settings/reset
+```
+
+```python
+import httpx, json
+
+async def backup_and_restore(base_url="http://localhost:8001"):
+    async with httpx.AsyncClient() as client:
+        # Export
+        config = (await client.get(f"{base_url}/api/settings/export")).json()
+        with open("council-backup.json", "w") as f:
+            json.dump(config, f, indent=2)
+
+        # Restore from file
+        with open("council-backup.json") as f:
+            config = json.load(f)
+        await client.post(f"{base_url}/api/settings/import", json=config)
+
+        # Reset to defaults
+        await client.post(f"{base_url}/api/settings/reset")
 ```
 
 ---
