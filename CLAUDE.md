@@ -70,9 +70,10 @@ This fixes binary incompatibilities (e.g., `@rollup/rollup-darwin-*` variants).
 | Module | Purpose |
 |--------|---------|
 | `council.py` | Orchestration: stage1/2/3 collection, rankings, title generation |
-| `search.py` | Web search: DuckDuckGo, Tavily, Brave with Jina Reader content fetch |
+| `search.py` | Web search: DuckDuckGo, Tavily, Brave, Serper, TinyFish with Jina Reader content fetch |
 | `settings.py` | Config management, persisted to `data/settings.json` |
-| `prompts.py` | Default system prompts for all stages |
+| `config.py` | OpenRouter endpoint URL, data dir constant, settings-aware getters (`get_openrouter_api_key`, `get_council_models`, `get_chairman_model`, ...) that bridge env vars and `settings.py` |
+| `prompts.py` | Default system prompts for all stages (Stage 1/2/3, Title, Query) |
 | `main.py` | FastAPI app with streaming SSE endpoint |
 | `storage.py` | Conversation persistence in `data/conversations/{id}.json` |
 
@@ -109,14 +110,7 @@ cd backend && python main.py  # WRONG - breaks imports
 ```
 
 ### Model ID Prefix Format
-```
-openrouter:anthropic/claude-sonnet-4  → Cloud via OpenRouter
-ollama:llama3.1:latest                → Local via Ollama
-groq:llama3-70b-8192                  → Fast inference via Groq
-openai:gpt-4.1                        → Direct OpenAI connection
-anthropic:claude-sonnet-4             → Direct Anthropic connection
-custom:model-name                     → Custom OpenAI-compatible endpoint
-```
+Canonical reference table lives in [`skills/llm-council-api/SKILL.md`](skills/llm-council-api/SKILL.md) under "Quick Reference → Model ID prefix format". When changing the prefix set, update SKILL.md first; this section intentionally does not duplicate the table.
 
 ### Model Name Display Helper
 Use this pattern in Stage components to handle both `/` and `:` delimiters:
@@ -232,10 +226,16 @@ The minimum is 1 model (not 2). Single-model queries are valid for any execution
 
 ## Execution Modes
 
-Three modes control deliberation depth:
-- **Chat Only**: Stage 1 only (quick responses)
-- **Chat + Ranking**: Stages 1 & 2 (peer review without synthesis)
-- **Full Deliberation**: All 3 stages (default)
+Three modes control deliberation depth (UI label → API enum):
+- **Chat Only** (`chat_only`): Stage 1 only (quick responses)
+- **Chat + Ranking** (`chat_ranking`): Stages 1 & 2 (peer review without synthesis)
+- **Full Deliberation** (`full`): All 3 stages
+
+**Two distinct defaults — do not confuse them:**
+- The **global config default** (used by the stateful conversation flow, `/api/conversations/{id}/message[/stream]`) is `full`.
+- The **per-request default** of the stateless `/api/ask` endpoint is `chat_only`, because that endpoint is designed for cheap one-shot queries.
+
+If you change either default, update both this section and the `execution_mode` field defaults in `backend/main.py` (`SendMessageRequest`, `AskRequest`) plus the `/api/ask` request table in `skills/llm-council-api/SKILL.md`.
 
 ## Testing & Debugging
 
@@ -252,7 +252,7 @@ curl https://your-endpoint.com/v1/models -H "Authorization: Bearer $API_KEY"
 
 ## Web Search
 
-**Providers**: DuckDuckGo (free), Tavily (API), Brave (API)
+**Providers**: DuckDuckGo (free), Tavily (API), Brave (API), Serper (API), TinyFish (API). The canonical list of valid `search_provider` enum values is `duckduckgo`, `tavily`, `brave`, `serper`, `tinyfish` — also documented in `skills/llm-council-api/SKILL.md`. Add new providers in `backend/search.py` (`SearchProvider` enum) first.
 
 **Full Content Fetching**: Jina Reader (`https://r.jina.ai/{url}`) extracts article text for top N results (configurable 0-10, default 3). Falls back to summary if fetch fails or yields <500 chars. 25-second timeout per article, 60-second total search budget.
 
@@ -265,8 +265,8 @@ curl https://your-endpoint.com/v1/models -H "Authorization: Bearer $API_KEY"
 **UI Sections** (sidebar navigation):
 1. **LLM API Keys**: OpenRouter, Groq, Ollama, Direct providers, Custom endpoint
 2. **Council Config**: Model selection with Remote/Local toggles, temperature controls, "I'm Feeling Lucky" randomizer
-3. **System Prompts**: Stage 1/2/3 prompts with reset-to-default
-4. **Search Providers**: DuckDuckGo, Tavily, Brave + Jina full content settings
+3. **System Prompts**: Stage 1 / Stage 2 / Stage 3 are user-editable and persisted in `settings.json` (fields `stage1_prompt` / `stage2_prompt` / `stage3_prompt`, updated via `PUT /api/settings`), each with reset-to-default. The Title and Query prompts (`TITLE_PROMPT_DEFAULT` / query-generation prompt in `backend/prompts.py`) are referenced internally by `generate_conversation_title` and `generate_search_query` and are not yet wired through `PUT /api/settings`; `frontend/src/components/Settings.jsx` has a `title_prompt` field in local state but no persistence path. Fix this end-to-end before claiming five customizable prompt slots.
+4. **Search Providers**: DuckDuckGo, Tavily, Brave, Serper, TinyFish + Jina full content settings
 5. **Backup & Reset**: Import/Export config, reset to defaults
 
 **Auto-Save Behavior**:
