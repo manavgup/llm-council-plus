@@ -1,5 +1,6 @@
 """Tests for settings export/import/reset endpoints."""
 import json
+import importlib
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
@@ -32,11 +33,35 @@ def client():
         mock_get.return_value = _make_default_settings()
         mock_save.return_value = None
         from backend.main import app
-        with TestClient(app) as c:
+        with TestClient(app, client=("127.0.0.1", 50000)) as c:
             # Expose mocks via the client so individual tests can reconfigure them.
             c._mock_get = mock_get
             c._mock_save = mock_save
             yield c
+
+
+def _make_client(client_host="127.0.0.1"):
+    """Create a TestClient with settings IO mocked and a specific peer host."""
+    patch_get = patch("backend.main.get_settings")
+    patch_save = patch("backend.main.save_settings")
+    mock_get = patch_get.start()
+    mock_save = patch_save.start()
+    mock_get.return_value = _make_default_settings()
+    mock_save.return_value = None
+
+    from backend.main import app
+
+    c = TestClient(app, client=(client_host, 50000))
+    c._mock_get = mock_get
+    c._mock_save = mock_save
+    c._patches = (patch_get, patch_save)
+    return c
+
+
+def _close_client(c):
+    c.close()
+    for p in c._patches:
+        p.stop()
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +92,53 @@ def test_export_includes_api_key_values(client):
     # Ensure there are no *_key_set fields (those only appear in the secure GET endpoint).
     for key in data:
         assert not key.endswith("_key_set"), f"Unexpected boolean key field: {key}"
+
+
+def test_export_rejects_remote_client_without_admin_token():
+    """GET /api/settings/export rejects non-loopback callers when no admin token is set."""
+    c = _make_client(client_host="203.0.113.10")
+    try:
+        response = c.get("/api/settings/export")
+    finally:
+        _close_client(c)
+
+    assert response.status_code == 403
+
+
+def test_export_rejects_proxied_remote_client_without_admin_token():
+    """Loopback reverse proxies must not make external clients look like local admins."""
+    c = _make_client(client_host="127.0.0.1")
+    try:
+        response = c.get(
+            "/api/settings/export",
+            headers={"X-Real-IP": "203.0.113.10"},
+        )
+    finally:
+        _close_client(c)
+
+    assert response.status_code == 403
+
+
+def test_export_accepts_remote_client_with_admin_token(monkeypatch):
+    """Bearer token allows explicit remote admin access."""
+    monkeypatch.setenv("LLM_COUNCIL_ADMIN_TOKEN", "test-token")
+    import backend.main as main
+    importlib.reload(main)
+
+    with patch("backend.main.get_settings") as mock_get, \
+         patch("backend.main.save_settings") as mock_save:
+        mock_get.return_value = _make_default_settings()
+        mock_save.return_value = None
+        with TestClient(main.app, client=("203.0.113.10", 50000)) as c:
+            response = c.get(
+                "/api/settings/export",
+                headers={"Authorization": "Bearer test-token"},
+            )
+
+    assert response.status_code == 200
+
+    monkeypatch.delenv("LLM_COUNCIL_ADMIN_TOKEN", raising=False)
+    importlib.reload(main)
 
 
 # ---------------------------------------------------------------------------

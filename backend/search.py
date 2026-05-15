@@ -3,6 +3,7 @@
 from ddgs import DDGS
 from typing import List, Dict, Optional, Tuple, Set
 from enum import Enum
+import ipaddress
 import logging
 import httpx
 import os
@@ -11,6 +12,7 @@ import asyncio
 import yake
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -796,11 +798,41 @@ async def _search_duckduckgo(
     return "\n\n".join(formatted)
 
 
+def _is_safe_fetch_url(url: str) -> bool:
+    """Reject URLs that target internal networks before sending them to Jina Reader.
+
+    Search results are attacker-influenced, so a poisoned result containing
+    e.g. http://169.254.169.254/ or http://10.0.0.5/ could turn Jina into an
+    SSRF probe against the host's metadata service or LAN. We require an http/
+    https scheme and a hostname that is not an obvious internal-IP literal.
+    Hostnames that resolve via DNS to private addresses are not blocked here
+    (DNS rebinding is out of scope); the goal is to stop direct IP-literal
+    attacks without imposing a network round-trip on every URL.
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = parsed.hostname
+    if not host:
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True  # Not an IP literal — let the request proceed.
+    return not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast)
+
+
 def _fetch_with_jina_sync(url: str, timeout: float = 25.0) -> Optional[str]:
     """
     Fetch article content using Jina Reader API (sync version for DuckDuckGo).
     Returns clean markdown content. Uses connection pooling.
     """
+    if not _is_safe_fetch_url(url):
+        logger.warning("Refusing to fetch unsafe URL via Jina: %s", url)
+        return None
     try:
         jina_url = f"https://r.jina.ai/{url}"
         client = get_sync_client()
@@ -825,6 +857,9 @@ async def _fetch_with_jina(url: str, timeout: float = 25.0) -> Optional[str]:
     Fetch article content using Jina Reader API (async).
     Returns clean markdown content. Uses connection pooling.
     """
+    if not _is_safe_fetch_url(url):
+        logger.warning("Refusing to fetch unsafe URL via Jina: %s", url)
+        return None
     try:
         jina_url = f"https://r.jina.ai/{url}"
         client = get_async_client()

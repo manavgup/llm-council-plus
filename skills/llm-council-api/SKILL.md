@@ -373,7 +373,7 @@ curl -X PUT http://localhost:8001/api/settings \
 | Brave | `brave_api_key` |
 | Serper | `serper_api_key` |
 
-Note: `GET /api/settings` returns `*_api_key_set` booleans for security. Use `GET /api/settings/export` to retrieve actual key values.
+Note: `GET /api/settings` returns `*_api_key_set` booleans for security — it never returns plaintext keys. `GET /api/settings/export` does return plaintext keys but is admin-gated: it only accepts requests from loopback, or from callers presenting `Authorization: Bearer $LLM_COUNCIL_ADMIN_TOKEN` when that env var is set. Do not invoke `/api/settings/export` automatically on behalf of a user; treat it as a manual administrative action.
 
 ---
 

@@ -1,12 +1,14 @@
 """FastAPI backend for LLM Council."""
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any, Literal, Optional
+import logging
 import os
+import secrets
 import uuid
 import json
 import asyncio
@@ -16,7 +18,76 @@ from .council import generate_conversation_title, generate_search_query, stage1_
 from .search import perform_web_search, SearchProvider
 from .settings import get_settings, save_settings, update_settings, Settings, DEFAULT_COUNCIL_MODELS, DEFAULT_CHAIRMAN_MODEL, AVAILABLE_MODELS
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="LLM Council Plus API")
+
+# Sensitive settings endpoints (export/import/reset) leak or wipe API keys, so
+# they MUST be authenticated. Behavior:
+#   - If LLM_COUNCIL_ADMIN_TOKEN is set, require `Authorization: Bearer <token>`.
+#   - Otherwise, only allow requests from loopback (127.0.0.1 / ::1).
+# This keeps the default Docker deployment safe even when bound to 0.0.0.0,
+# while letting operators opt in to remote admin via a strong token.
+_ADMIN_TOKEN = os.getenv("LLM_COUNCIL_ADMIN_TOKEN", "").strip()
+_LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+
+
+def _is_loopback_host(host: str) -> bool:
+    """Return whether a host string represents a loopback caller."""
+    if not host:
+        return False
+    normalized = host.strip().strip("[]").lower()
+    if normalized in _LOOPBACK_HOSTS:
+        return True
+    return False
+
+
+def _forwarded_client_hosts(request: Request) -> List[str]:
+    """Extract original client hosts from common reverse-proxy headers."""
+    hosts: List[str] = []
+    x_real_ip = request.headers.get("x-real-ip", "").strip()
+    if x_real_ip:
+        hosts.append(x_real_ip)
+
+    x_forwarded_for = request.headers.get("x-forwarded-for", "")
+    hosts.extend(part.strip() for part in x_forwarded_for.split(",") if part.strip())
+
+    forwarded = request.headers.get("forwarded", "")
+    for entry in forwarded.split(","):
+        for part in entry.split(";"):
+            key, sep, value = part.strip().partition("=")
+            if sep and key.lower() == "for":
+                hosts.append(value.strip().strip('"'))
+
+    return hosts
+
+
+def _require_admin(request: Request) -> None:
+    """Auth guard for endpoints that read or rewrite stored credentials."""
+    if _ADMIN_TOKEN:
+        auth = request.headers.get("authorization", "")
+        prefix = "Bearer "
+        if not auth.startswith(prefix) or not secrets.compare_digest(auth[len(prefix):], _ADMIN_TOKEN):
+            raise HTTPException(status_code=401, detail="Admin authentication required")
+        return
+    client_host = request.client.host if request.client else ""
+    if not _is_loopback_host(client_host):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Admin endpoint disabled for non-loopback clients. "
+                "Set LLM_COUNCIL_ADMIN_TOKEN to allow remote access."
+            ),
+        )
+    forwarded_hosts = _forwarded_client_hosts(request)
+    if any(not _is_loopback_host(host) for host in forwarded_hosts):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Admin endpoint disabled for proxied non-loopback clients. "
+                "Set LLM_COUNCIL_ADMIN_TOKEN to allow remote access."
+            ),
+        )
 
 FRONTEND_DIST_DIR = os.getenv(
     "FRONTEND_DIST_DIR",
@@ -661,9 +732,13 @@ async def get_default_settings():
     }
 
 
-@app.get("/api/settings/export")
+@app.get("/api/settings/export", dependencies=[Depends(_require_admin)])
 async def export_settings():
-    """Export complete settings as a downloadable JSON file (includes actual API key values)."""
+    """Export complete settings as a downloadable JSON file (includes actual API key values).
+
+    Admin-only — see _require_admin. Without auth, returning plaintext keys to any
+    network peer would be a credential disclosure.
+    """
     settings = get_settings()
     content = settings.model_dump_json(indent=2)
     return Response(
@@ -673,16 +748,16 @@ async def export_settings():
     )
 
 
-@app.post("/api/settings/import")
+@app.post("/api/settings/import", dependencies=[Depends(_require_admin)])
 async def import_settings(new_settings: Settings):
-    """Import settings from a full settings JSON blob."""
+    """Import settings from a full settings JSON blob (admin-only)."""
     save_settings(new_settings)
     return {"status": "imported", "message": "Settings imported successfully"}
 
 
-@app.post("/api/settings/reset")
+@app.post("/api/settings/reset", dependencies=[Depends(_require_admin)])
 async def reset_settings():
-    """Reset all settings to defaults."""
+    """Reset all settings to defaults (admin-only)."""
     save_settings(Settings())
     return {"status": "reset", "message": "Settings reset to defaults"}
 
@@ -1263,4 +1338,16 @@ if os.path.isdir(FRONTEND_DIST_DIR):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    # Default to loopback for the local dev launcher. Set LLM_COUNCIL_BIND_HOST
+    # to 0.0.0.0 explicitly when you intentionally want network exposure
+    # (Docker CMD already passes --host 0.0.0.0).
+    bind_host = os.getenv("LLM_COUNCIL_BIND_HOST", "127.0.0.1")
+    bind_port = int(os.getenv("LLM_COUNCIL_BIND_PORT", "8001"))
+    if bind_host not in _LOOPBACK_HOSTS and not _ADMIN_TOKEN:
+        logger.warning(
+            "Binding to %s without LLM_COUNCIL_ADMIN_TOKEN set: "
+            "admin endpoints will reject non-loopback callers. "
+            "Set LLM_COUNCIL_ADMIN_TOKEN to enable remote admin.",
+            bind_host,
+        )
+    uvicorn.run(app, host=bind_host, port=bind_port)
