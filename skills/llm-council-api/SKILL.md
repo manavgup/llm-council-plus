@@ -375,6 +375,14 @@ curl -X PUT http://localhost:8001/api/settings \
 
 Note: `GET /api/settings` returns `*_api_key_set` booleans for security — it never returns plaintext keys. `GET /api/settings/export` does return plaintext keys but is admin-gated: it only accepts requests from loopback, or from callers presenting `Authorization: Bearer $LLM_COUNCIL_ADMIN_TOKEN` when that env var is set. Do not invoke `/api/settings/export` automatically on behalf of a user; treat it as a manual administrative action.
 
+Security/admin environment variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `LLM_COUNCIL_ADMIN_TOKEN` | unset | Enables remote access to settings export/import/reset when callers send `Authorization: Bearer <token>`. If unset, these admin endpoints accept only direct loopback clients and reject proxied external clients. |
+| `LLM_COUNCIL_BIND_HOST` | `127.0.0.1` | Local dev launcher bind host for `python -m backend.main`. Set to `0.0.0.0` for intentional LAN access. |
+| `LLM_COUNCIL_BIND_PORT` | `8001` | Local dev launcher bind port for `python -m backend.main`. |
+
 ---
 
 ### 12. List All Available Models
@@ -423,15 +431,19 @@ async def get_conversation(conv_id, base_url="http://localhost:8001"):
 ## Backup and Restore
 
 ```bash
-# Export full settings (includes actual API key values)
+# Export full settings from the backend host itself (includes actual API key values)
 curl http://localhost:8001/api/settings/export -o council-settings.json
 
-# Import settings from backup
+# Remote export requires LLM_COUNCIL_ADMIN_TOKEN on the server
+curl -H "Authorization: Bearer $LLM_COUNCIL_ADMIN_TOKEN" \
+  http://SERVER:8001/api/settings/export -o council-settings.json
+
+# Import settings from backup locally, or add the same Authorization header remotely
 curl -X POST http://localhost:8001/api/settings/import \
   -H "Content-Type: application/json" \
   -d @council-settings.json
 
-# Reset all settings to factory defaults (clears API keys and custom config)
+# Reset all settings to factory defaults locally, or add the same Authorization header remotely
 curl -X POST http://localhost:8001/api/settings/reset
 ```
 

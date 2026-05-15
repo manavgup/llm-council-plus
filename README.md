@@ -205,6 +205,12 @@ Terminal 1 (Backend):
 uv run python -m backend.main
 ```
 
+By default, the manual backend launcher binds to `127.0.0.1:8001`. To expose it on your local network, set:
+
+```bash
+LLM_COUNCIL_BIND_HOST=0.0.0.0 uv run python -m backend.main
+```
+
 Terminal 2 (Frontend):
 ```bash
 cd frontend
@@ -230,7 +236,7 @@ For Ollama, reverse proxy setup, environment variables, and upgrade instructions
 The application is configured to be accessible from other devices on your local network.
 
 **Using start.sh (automatic):**
-The start script now exposes both frontend and backend on the network automatically. Just run `./start.sh` and access from any device.
+The start script exposes both frontend and backend on the network automatically. Just run `./start.sh` and access from any device. It sets `LLM_COUNCIL_BIND_HOST=0.0.0.0` for the backend unless you override that environment variable.
 
 **Access URLs:**
 - **Local:** `http://localhost:5173`
@@ -247,14 +253,15 @@ hostname -I
 
 **Manual setup (if not using start.sh):**
 ```bash
-# Backend already listens on 0.0.0.0:8001
+# Backend with network access
+LLM_COUNCIL_BIND_HOST=0.0.0.0 uv run python -m backend.main
 
 # Frontend with network access
 cd frontend
 npm run dev -- --host
 ```
 
-The frontend automatically detects the hostname and connects to the backend on the same IP. When running via `./start.sh`, CORS is configured to allow requests from any hostname on ports 5173 and 3000. When running via Docker, the frontend and API share the same origin so no external CORS is needed.
+The frontend automatically detects the hostname and connects to the backend on the same IP. When running via `./start.sh`, CORS is configured to allow requests from any hostname on ports 5173 and 3000. Remote settings export/import/reset still require `LLM_COUNCIL_ADMIN_TOKEN`; without it, those admin endpoints only accept direct loopback clients. When running via Docker, the frontend and API share the same origin so no external CORS is needed.
 
 ---
 

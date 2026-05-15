@@ -67,6 +67,8 @@ Set these in a `.env` file in the project root, or inline in `docker-compose.yml
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama endpoint. **Must be changed when using Docker** — see below. |
 | `FRONTEND_DIST_DIR` | `/app/frontend/dist` | Path to the compiled frontend. Do not change unless you know what you're doing. |
 
+`LLM_COUNCIL_BIND_HOST` and `LLM_COUNCIL_BIND_PORT` apply only to the local `python -m backend.main` dev launcher. Docker starts uvicorn directly with `--host 0.0.0.0 --port 8001`, so use Docker port publishing or reverse proxy settings instead of those variables for container deployments.
+
 ### Example `.env`
 
 ```env
