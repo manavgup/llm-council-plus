@@ -32,6 +32,36 @@ _ADMIN_TOKEN = os.getenv("LLM_COUNCIL_ADMIN_TOKEN", "").strip()
 _LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
 
 
+def _is_loopback_host(host: str) -> bool:
+    """Return whether a host string represents a loopback caller."""
+    if not host:
+        return False
+    normalized = host.strip().strip("[]").lower()
+    if normalized in _LOOPBACK_HOSTS:
+        return True
+    return False
+
+
+def _forwarded_client_hosts(request: Request) -> List[str]:
+    """Extract original client hosts from common reverse-proxy headers."""
+    hosts: List[str] = []
+    x_real_ip = request.headers.get("x-real-ip", "").strip()
+    if x_real_ip:
+        hosts.append(x_real_ip)
+
+    x_forwarded_for = request.headers.get("x-forwarded-for", "")
+    hosts.extend(part.strip() for part in x_forwarded_for.split(",") if part.strip())
+
+    forwarded = request.headers.get("forwarded", "")
+    for entry in forwarded.split(","):
+        for part in entry.split(";"):
+            key, sep, value = part.strip().partition("=")
+            if sep and key.lower() == "for":
+                hosts.append(value.strip().strip('"'))
+
+    return hosts
+
+
 def _require_admin(request: Request) -> None:
     """Auth guard for endpoints that read or rewrite stored credentials."""
     if _ADMIN_TOKEN:
@@ -41,11 +71,20 @@ def _require_admin(request: Request) -> None:
             raise HTTPException(status_code=401, detail="Admin authentication required")
         return
     client_host = request.client.host if request.client else ""
-    if client_host not in _LOOPBACK_HOSTS:
+    if not _is_loopback_host(client_host):
         raise HTTPException(
             status_code=403,
             detail=(
                 "Admin endpoint disabled for non-loopback clients. "
+                "Set LLM_COUNCIL_ADMIN_TOKEN to allow remote access."
+            ),
+        )
+    forwarded_hosts = _forwarded_client_hosts(request)
+    if any(not _is_loopback_host(host) for host in forwarded_hosts):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Admin endpoint disabled for proxied non-loopback clients. "
                 "Set LLM_COUNCIL_ADMIN_TOKEN to allow remote access."
             ),
         )
