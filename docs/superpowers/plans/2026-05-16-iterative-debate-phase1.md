@@ -36,6 +36,10 @@ These address the blocking problems identified in Codex review:
 
 10. **Feature branch**: All work on `feat/iterative-debate`, merged via PR.
 
+11. **Round transition UX**: Between rounds, show a brief interstitial ("Starting Round N+1... Models are revising") instead of blanking the stage area. Prevents the "answer disappeared" feeling during multi-minute debates. Cleared when `round_start` fires for the next round.
+
+12. **Round dots are progress-only in Phase 1**: Clicking dots to browse historical rounds is deferred. User always sees the current/final round. Previous round data is stored but not browsable until Phase 2 or follow-up.
+
 ---
 
 ## File Map
@@ -943,6 +947,7 @@ At line ~278, add new fields to the `assistantMessage` object:
         totalRounds: 1,
         converged: false,
         convergenceRound: null,
+        roundTransition: false,  // true between rounds (shows interstitial)
 ```
 
 - [ ] **Step 2: Add round event handlers to the switch statement**
@@ -958,6 +963,7 @@ Before the `default:` case (~line 615), add:
                   ...lastMsg,
                   currentRound: event.round,
                   totalRounds: event.total_rounds,
+                  roundTransition: false,  // Clear transition state when new round begins
                 };
                 return { ...prev, messages };
               });
@@ -983,6 +989,7 @@ Before the `default:` case (~line 615), add:
                     stage2: null,
                     stage3: null,
                     metadata: null,
+                    roundTransition: true,  // Show interstitial between rounds
                     loading: { search: false, stage1: false, stage2: false, stage3: false },
                     progress: {
                       stage1: { count: 0, total: 0, currentModel: null },
@@ -1149,6 +1156,63 @@ In the message rendering section, above where Stage1/Stage2/Stage3 are rendered 
     convergenceRound={msg.convergenceRound}
   />
 )}
+
+{/* Round transition interstitial — shown between rounds while stages are reset */}
+{msg.roundTransition && (
+  <div className="round-transition">
+    <div className="round-transition-icon">&#x27F3;</div>
+    <div className="round-transition-text">
+      <strong>Starting Round {msg.currentRound + 1}...</strong>
+      <span>Models are revising their responses based on peer feedback</span>
+    </div>
+  </div>
+)}
+```
+
+Add to `ChatInterface.css`:
+```css
+.round-transition {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  background: rgba(6, 182, 212, 0.05);
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  border-radius: 8px;
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+.round-transition-icon {
+  font-size: 24px;
+  animation: spin 2s linear infinite;
+}
+
+.round-transition-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.round-transition-text strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+
+.round-transition-text span {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
 ```
 
 - [ ] **Step 4: Build**
