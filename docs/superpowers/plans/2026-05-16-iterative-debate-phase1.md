@@ -138,7 +138,37 @@ With:
         messages = (history or []) + [{"role": "user", "content": prompt}]
 ```
 
-- [ ] **Step 2: Add `prompt_override` to `stage3_synthesize_final()`**
+- [ ] **Step 2: Extract `build_stage_texts()` helper**
+
+Add a shared helper above `stage3_synthesize_final()`:
+
+```python
+def build_stage_texts(
+    stage1_results: List[Dict[str, Any]],
+    stage2_results: List[Dict[str, Any]],
+) -> tuple:
+    """Build formatted text summaries from stage results. Returns (stage1_text, stage2_text)."""
+    stage1_text = "\n\n".join([
+        f"Model: {result['model']}\nResponse: {result.get('response', 'No response')}"
+        for result in stage1_results
+        if result.get('response') is not None
+    ])
+    stage2_text = "\n\n".join([
+        f"Model: {result['model']}\nRanking: {result.get('ranking', 'No ranking')}"
+        for result in stage2_results
+        if result.get('ranking') is not None
+    ])
+    return stage1_text, stage2_text
+```
+
+Update `stage3_synthesize_final()` to use it:
+```python
+    stage1_text, stage2_text = build_stage_texts(stage1_results, stage2_results)
+```
+
+Remove the duplicate text-building code from lines 354-364.
+
+- [ ] **Step 3: Add `prompt_override` to `stage3_synthesize_final()`**
 
 Change signature at line 331:
 
@@ -308,7 +338,13 @@ class TestConvergence:
     def test_no_common_models(self):
         prev = [{"model": "a", "average_rank": 1.0}]
         curr = [{"model": "x", "average_rank": 1.0}]
-        # No common models with len < 2 → converged (degenerate)
+        # Zero common models → not converged (can't compare)
+        assert check_convergence(curr, prev) is False
+
+    def test_one_common_model(self):
+        prev = [{"model": "a", "average_rank": 1.0}, {"model": "b", "average_rank": 2.0}]
+        curr = [{"model": "a", "average_rank": 1.0}, {"model": "x", "average_rank": 2.0}]
+        # One common model → degenerate, treat as converged
         assert check_convergence(curr, prev) is True
 
 
@@ -375,8 +411,10 @@ def check_convergence(
     previous_models = {r["model"] for r in previous_rankings}
     common = current_models & previous_models
 
-    if len(common) < 2:
-        return True
+    if len(common) == 0:
+        return False  # No common models = can't compare = not converged
+    if len(common) == 1:
+        return True  # Degenerate: single common model is trivially stable
 
     current_order = [r["model"] for r in current_rankings if r["model"] in common]
     previous_order = [r["model"] for r in previous_rankings if r["model"] in common]
@@ -601,20 +639,14 @@ async def run_iterative_debate(
             # Build final chairman prompt for last round
             prompt_override = None
             if is_final and round_num > 1 and previous_synthesis:
-                from .prompts import STAGE3_FINAL_FREEFORM_PROMPT, STAGE1_SEARCH_CONTEXT_TEMPLATE
+                from .prompts import STAGE3_FINAL_FREEFORM_PROMPT
+                from .council import build_stage_texts
 
                 search_block = ""
                 if search_context:
                     search_block = f"Context from Web Search:\n{search_context}\n"
 
-                stage1_text = "\n\n".join([
-                    f"Model: {r['model']}\nResponse: {r.get('response', 'No response')}"
-                    for r in stage1_results if r.get('response')
-                ])
-                stage2_text = "\n\n".join([
-                    f"Model: {r['model']}\nRanking: {r.get('ranking', 'No ranking')}"
-                    for r in stage2_results if r.get('ranking')
-                ])
+                stage1_text, stage2_text = build_stage_texts(stage1_results, stage2_results)
 
                 prompt_override = STAGE3_FINAL_FREEFORM_PROMPT.format(
                     total_rounds=round_num,
@@ -1458,13 +1490,102 @@ async def test_all_models_fail_stops(mock_settings):
         assert "debate_complete" not in types
 ```
 
-- [ ] **Step 2: Run tests**
+- [ ] **Step 2: Add gap-coverage tests**
+
+Add these additional test cases to `test_debate_integration.py`:
+
+```python
+@pytest.mark.asyncio
+async def test_chat_ranking_with_rounds(mock_settings):
+    """chat_ranking mode uses ranking-only feedback, no synthesis."""
+    with patch("backend.debate.get_settings", return_value=mock_settings), \
+         patch("backend.debate.stage1_collect_responses", side_effect=_fake_stage1), \
+         patch("backend.debate.stage2_collect_rankings", side_effect=_fake_stage2):
+
+        events = []
+        async for event in run_iterative_debate("test?", "", None, "chat_ranking", debate_rounds=2):
+            events.append(event)
+
+        types = [e["type"] for e in events]
+        assert types.count("round_start") == 2
+        assert "stage3_complete" not in types  # No chairman in chat_ranking
+        assert "debate_complete" in types
+
+
+@pytest.mark.asyncio
+async def test_partial_model_failure_round2(mock_settings):
+    """One model fails in round 2 after succeeding in round 1."""
+    call_count = [0]
+    def _stage1_with_failure(*args, **kwargs):
+        call_count[0] += 1
+        async def gen():
+            yield 2
+            if call_count[0] == 1:
+                yield {"model": "model_a", "response": "A1", "error": None}
+                yield {"model": "model_b", "response": "B1", "error": None}
+            else:
+                yield {"model": "model_a", "response": "A2", "error": None}
+                yield {"model": "model_b", "response": None, "error": True, "error_message": "timeout"}
+        return gen()
+
+    with patch("backend.debate.get_settings", return_value=mock_settings), \
+         patch("backend.debate.stage1_collect_responses", side_effect=_stage1_with_failure), \
+         patch("backend.debate.stage2_collect_rankings", side_effect=_fake_stage2), \
+         patch("backend.debate.stage3_synthesize_final", return_value={"model": "chair", "response": "OK", "error": False}):
+
+        events = []
+        async for event in run_iterative_debate("test?", "", None, "full", debate_rounds=2):
+            events.append(event)
+
+        # Should complete both rounds (one model still succeeded)
+        types = [e["type"] for e in events]
+        assert types.count("round_complete") == 2
+
+
+@pytest.mark.asyncio
+async def test_debate_rounds_param_overrides_settings(mock_settings):
+    """debate_rounds parameter takes precedence over settings."""
+    mock_settings.debate_rounds = 5  # Settings say 5
+
+    with patch("backend.debate.get_settings", return_value=mock_settings), \
+         patch("backend.debate.stage1_collect_responses", side_effect=_fake_stage1), \
+         patch("backend.debate.stage2_collect_rankings", side_effect=_fake_stage2), \
+         patch("backend.debate.stage3_synthesize_final", return_value={"model": "chair", "response": "OK", "error": False}):
+
+        events = []
+        async for event in run_iterative_debate("test?", "", None, "full", debate_rounds=2):
+            events.append(event)
+
+        # Should use param (2), not settings (5)
+        dc = next(e for e in events if e["type"] == "debate_complete")
+        assert dc["total_rounds_executed"] == 2
+
+
+@pytest.mark.asyncio
+async def test_final_round_uses_prompt_override(mock_settings):
+    """Final round calls stage3_synthesize_final with prompt_override."""
+    with patch("backend.debate.get_settings", return_value=mock_settings), \
+         patch("backend.debate.stage1_collect_responses", side_effect=_fake_stage1), \
+         patch("backend.debate.stage2_collect_rankings", side_effect=_fake_stage2), \
+         patch("backend.debate.stage3_synthesize_final", return_value={"model": "chair", "response": "Final", "error": False}) as mock_s3:
+
+        events = []
+        async for event in run_iterative_debate("test?", "", None, "full", debate_rounds=2):
+            events.append(event)
+
+        # The second (final) call should have prompt_override set
+        assert mock_s3.call_count == 2
+        final_call = mock_s3.call_args_list[1]
+        assert final_call.kwargs.get("prompt_override") is not None
+```
+
+- [ ] **Step 3: Run tests**
 
 ```bash
 uv run python -m pytest backend/tests/test_debate_integration.py -v
 ```
 
-- [ ] **Step 3: Run full test suite**
+- [ ] **Step 4: Run full test suite**
 
 ```bash
 uv run python -m pytest backend/tests/ -v
@@ -1800,19 +1921,31 @@ Deliver the definitive answer. Explain which claims survived scrutiny, which wer
 ```python
 async def extract_canonical_claims(
     responses_text: str,
-    models: List[str],
+    chairman_model: Optional[str] = None,
 ) -> Optional[Dict[str, List[Dict[str, str]]]]:
-    """Extract canonical claims via single LLM call. Returns {label: [{id, claim}]}."""
+    """Extract canonical claims via single LLM call using the chairman model.
+    
+    Uses the chairman to avoid bias (council models should not write their own exam).
+    Falls back to free-form mode if extraction fails or times out (30s).
+    Returns {label: [{id, claim}]} or None on failure.
+    """
     from .prompts import CLAIM_EXTRACTION_PROMPT
     from .council import query_model
+    from .config import get_chairman_model
     from .json_repair import extract_json_block
 
     prompt = CLAIM_EXTRACTION_PROMPT.format(responses_text=responses_text)
     messages = [{"role": "user", "content": prompt}]
 
-    # Use first available model for extraction
-    extractor = models[0] if models else "openrouter:anthropic/claude-sonnet-4"
-    response = await query_model(extractor, messages, temperature=0.2)
+    extractor = chairman_model or get_chairman_model()
+    try:
+        response = await asyncio.wait_for(
+            query_model(extractor, messages, temperature=0.2),
+            timeout=30.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Claim extraction timed out after 30s, falling back to free-form")
+        return None
 
     if not response or response.get("error"):
         return None
@@ -1952,12 +2085,90 @@ In `main.py` update settings validation:
 
 - [ ] **Step 2: Add mode-aware paths in `run_iterative_debate()`**
 
-Extend the orchestrator to check `settings.critique_mode` and:
-- In paragraph mode: call `format_numbered_paragraphs()` on responses before Stage 2
-- In claim mode: call `extract_canonical_claims()` as Step 2a, then pass canonical claims to Stage 2 prompt
-- Use appropriate Stage 2 prompt template based on mode
-- Parse structured output via `extract_json_block()` and attach to results
-- Build per-model messages for Round N+1 using claim/paragraph feedback
+In the orchestrator, after Stage 1 completes and before Stage 2 starts, add mode branching:
+
+```python
+        # --- Mode-aware Stage 2 preparation ---
+        critique_mode = settings.critique_mode
+        canonical_claims = None
+        
+        if execution_mode in ("chat_ranking", "full"):
+            if critique_mode == "paragraph":
+                # Pre-segment responses with stable paragraph IDs
+                for result in stage1_results:
+                    if result.get("response"):
+                        result["_numbered_response"] = format_numbered_paragraphs(result["response"])
+            
+            elif critique_mode == "claim":
+                # Step 2a: Extract canonical claims (uses chairman, 30s timeout)
+                from .council import build_stage_texts
+                responses_text = "\n\n".join([
+                    f"Response {chr(65+i)}:\n{r['response']}"
+                    for i, r in enumerate(stage1_results) if r.get('response')
+                ])
+                canonical_claims = await extract_canonical_claims(
+                    responses_text, chairman_override
+                )
+                if canonical_claims is None:
+                    logger.warning("Claim extraction failed, falling back to freeform for this round")
+                    critique_mode = "freeform"  # Graceful degradation
+```
+
+For Stage 2, use mode-specific prompts by temporarily overriding the stage2 prompt in settings or passing it via a new mechanism. The simplest approach: modify the Stage 2 call to accept a prompt override (similar to Stage 3):
+
+```python
+            # Select Stage 2 prompt based on mode
+            if critique_mode == "paragraph":
+                # Stage 2 with paragraph annotations
+                # Modify responses_text to use numbered paragraphs
+                pass  # stage2_collect_rankings uses settings.stage2_prompt
+                      # Override by temporarily setting it (or add prompt_override param)
+            elif critique_mode == "claim" and canonical_claims:
+                # Stage 2 with canonical claims to evaluate
+                claims_text = "\n".join([
+                    f"  {c['id']}: \"{c['claim']}\""
+                    for label_claims in canonical_claims.values()
+                    for c in label_claims
+                ])
+                # Pass claims_text into the prompt
+```
+
+For Round N+1 per-model messages in claim/paragraph mode:
+
+```python
+        if round_num > 1 and critique_mode == "claim" and canonical_claims:
+            from .prompts import STAGE1_ROUND_N_CLAIM_PROMPT
+            
+            aggregated = aggregate_claim_verdicts(stage2_results)
+            per_model_msgs = {}
+            
+            for model in models:
+                own_critiques = _format_own_claims(model, canonical_claims, aggregated, label_to_model)
+                top_others = select_top_claims_for_model(
+                    canonical_claims, aggregated, model, label_to_model
+                )
+                top_text = "\n".join([
+                    f"- {c['id']}: \"{c['claim']}\" — STRONG ({c['agreement']:.0%} agree)"
+                    for c in top_others
+                ])
+                
+                prompt = STAGE1_ROUND_N_CLAIM_PROMPT.format(
+                    round_number=round_num,
+                    user_query=user_query,
+                    search_context_block=search_block,
+                    own_claims_with_critiques=own_critiques,
+                    top_claims_from_others=top_text or "None",
+                )
+                per_model_msgs[model] = [{"role": "user", "content": prompt}]
+            
+            # Use per_model_messages in stage1_collect_responses
+            async for item in stage1_collect_responses(
+                user_query, "", request,
+                models_override=models_override,
+                per_model_messages=per_model_msgs,
+            ):
+                ...
+```
 
 - [ ] **Step 3: Commit**
 
@@ -2075,9 +2286,92 @@ git commit -m "feat(frontend): enable critique mode selection in settings"
 **Files:**
 - Modify: `backend/tests/test_debate_integration.py`
 
-- [ ] **Step 1: Add Phase 2 tests**
+- [ ] **Step 1: Add Phase 2 unit tests**
 
-Test claim extraction, paragraph segmentation, aggregation, cross-pollination selection, JSON repair edge cases, and full orchestration in claim mode.
+Add to `backend/tests/test_debate.py`:
+
+```python
+from backend.debate import (
+    pre_segment_paragraphs, format_numbered_paragraphs,
+    aggregate_claim_verdicts, select_top_claims_for_model,
+)
+
+
+class TestParagraphSegmentation:
+    def test_basic_split(self):
+        text = "Para one.\n\nPara two.\n\nPara three."
+        assert len(pre_segment_paragraphs(text)) == 3
+
+    def test_empty(self):
+        assert pre_segment_paragraphs("") == []
+        assert pre_segment_paragraphs(None) == []
+
+    def test_numbered_format(self):
+        text = "First paragraph.\n\nSecond paragraph."
+        result = format_numbered_paragraphs(text)
+        assert "[Para 1]" in result
+        assert "[Para 2]" in result
+
+
+class TestClaimAggregation:
+    def test_majority_verdict(self):
+        results = [
+            {"claim_verdicts": {"A1": {"verdict": "strong"}, "A2": {"verdict": "flawed"}}},
+            {"claim_verdicts": {"A1": {"verdict": "strong"}, "A2": {"verdict": "flawed"}}},
+            {"claim_verdicts": {"A1": {"verdict": "weak"}, "A2": {"verdict": "flawed"}}},
+        ]
+        agg = aggregate_claim_verdicts(results)
+        assert agg["A1"]["majority_verdict"] == "strong"
+        assert agg["A1"]["agreement"] == round(2/3, 2)
+        assert agg["A2"]["majority_verdict"] == "flawed"
+        assert agg["A2"]["agreement"] == 1.0
+
+    def test_empty_results(self):
+        assert aggregate_claim_verdicts([]) == {}
+
+
+class TestCrossPollination:
+    def test_selects_strong_from_others(self):
+        canonical = {
+            "Response A": [{"id": "A1", "claim": "claim a1"}],
+            "Response B": [{"id": "B1", "claim": "claim b1"}, {"id": "B2", "claim": "claim b2"}],
+        }
+        verdicts = {
+            "A1": {"majority_verdict": "flawed", "agreement": 1.0},
+            "B1": {"majority_verdict": "strong", "agreement": 0.75},
+            "B2": {"majority_verdict": "weak", "agreement": 0.5},
+        }
+        label_to_model = {"Response A": "model_a", "Response B": "model_b"}
+        
+        top = select_top_claims_for_model(canonical, verdicts, "model_a", label_to_model)
+        assert len(top) == 1  # Only B1 is strong
+        assert top[0]["id"] == "B1"
+
+    def test_excludes_own_claims(self):
+        canonical = {
+            "Response A": [{"id": "A1", "claim": "strong own claim"}],
+        }
+        verdicts = {"A1": {"majority_verdict": "strong", "agreement": 1.0}}
+        label_to_model = {"Response A": "model_a"}
+        
+        top = select_top_claims_for_model(canonical, verdicts, "model_a", label_to_model)
+        assert len(top) == 0  # Own claims excluded
+```
+
+Add to `backend/tests/test_json_repair.py`:
+
+```python
+def test_extract_nested_json():
+    text = 'Result: {"outer": {"inner": [1, 2]}}'
+    result = extract_json_block(text)
+    assert result == {"outer": {"inner": [1, 2]}}
+
+
+def test_extract_json_array():
+    text = 'Here: [{"a": 1}, {"b": 2}]'
+    result = extract_json_block(text)
+    assert result == [{"a": 1}, {"b": 2}]
+```
 
 - [ ] **Step 2: Run full suite**
 
