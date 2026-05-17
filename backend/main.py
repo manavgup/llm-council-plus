@@ -15,6 +15,7 @@ import asyncio
 
 from . import storage
 from .council import generate_conversation_title, generate_search_query, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings, PROVIDERS
+from .debate import run_iterative_debate, MAX_DEBATE_ROUNDS
 from .search import perform_web_search, SearchProvider
 from .settings import get_settings, save_settings, update_settings, Settings, DEFAULT_COUNCIL_MODELS, DEFAULT_CHAIRMAN_MODEL, AVAILABLE_MODELS
 
@@ -127,6 +128,7 @@ class SendMessageRequest(BaseModel):
     execution_mode: ExecutionMode = "full"
     council_models: Optional[List[str]] = None
     chairman_model: Optional[str] = None
+    debate_rounds: Optional[int] = None
 
 
 class AskRequest(BaseModel):
@@ -135,6 +137,7 @@ class AskRequest(BaseModel):
     chairman_model: Optional[str] = None
     web_search: bool = False
     execution_mode: ExecutionMode = "chat_only"
+    debate_rounds: Optional[int] = None
 
 
 def _validate_execution_mode(mode: str) -> None:
@@ -372,107 +375,188 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                 yield f"data: {json.dumps({'type': 'search_complete', 'data': {'search_query': search_query, 'extracted_query': extracted_query, 'search_context': search_context, 'provider': provider.value, 'intent': search_intent}})}\n\n"
                 await asyncio.sleep(0.05)
 
-            # Stage 1: Collect responses
-            yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            await asyncio.sleep(0.05)
-            
-            total_models = 0
-            
-            async for item in stage1_collect_responses(body.content, search_context, request, models_override=body.council_models, history=history):
-                if isinstance(item, int):
-                    total_models = item
-                    print(f"DEBUG: Sending stage1_init with total={total_models}")
-                    yield f"data: {json.dumps({'type': 'stage1_init', 'total': total_models})}\n\n"
-                    continue
-                
-                stage1_results.append(item)
-                yield f"data: {json.dumps({'type': 'stage1_progress', 'data': item, 'count': len(stage1_results), 'total': total_models})}\n\n"
-                await asyncio.sleep(0.01)
+            # Determine effective debate rounds
+            settings = get_settings()
+            effective_rounds = body.debate_rounds if body.debate_rounds is not None else settings.debate_rounds
+            effective_rounds = min(max(effective_rounds, 1), MAX_DEBATE_ROUNDS)
 
-            yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
-            await asyncio.sleep(0.05)
+            if effective_rounds > 1:
+                # --- Multi-round debate path ---
+                rounds_data = []
+                final_stage1 = []
+                final_stage2 = []
+                final_stage3 = None
+                final_label_to_model = {}
+                final_aggregate_rankings = []
 
-            # Check if any models responded successfully in Stage 1
-            if not any(r for r in stage1_results if not r.get('error')):
-                error_msg = 'All models failed to respond in Stage 1, likely due to rate limits or API errors. Please try again or adjust your model selection.'
-                storage.add_error_message(conversation_id, error_msg)
-                yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
-                return # Stop further processing
-
-            # Stage 2: Only if mode is 'chat_ranking' or 'full'
-            if body.execution_mode in ["chat_ranking", "full"]:
-                yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
-                await asyncio.sleep(0.05)
-                
-                # Iterate over the async generator
-                async for item in stage2_collect_rankings(body.content, stage1_results, search_context, request):
-                    # First item is the label mapping
-                    if isinstance(item, dict) and not item.get('model'):
-                        label_to_model = item
-                        # Send init event with total count
-                        yield f"data: {json.dumps({'type': 'stage2_init', 'total': len(label_to_model)})}\n\n"
-                        continue
-                    
-                    # Subsequent items are results
-                    stage2_results.append(item)
-                    
-                    # Send progress update
-                    print(f"Stage 2 Progress: {len(stage2_results)}/{len(label_to_model)} - {item['model']}")
-                    yield f"data: {json.dumps({'type': 'stage2_progress', 'data': item, 'count': len(stage2_results), 'total': len(label_to_model)})}\n\n"
+                async for event in run_iterative_debate(
+                    body.content, search_context, request, body.execution_mode,
+                    models_override=body.council_models,
+                    chairman_override=body.chairman_model,
+                    history=history,
+                    debate_rounds=effective_rounds,
+                ):
+                    event_type = event.get("type")
+                    yield f"data: {json.dumps(event)}\n\n"
                     await asyncio.sleep(0.01)
 
-                aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
-                yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings, 'search_query': search_query, 'search_context': search_context}})}\n\n"
+                    if event_type == "debate_complete":
+                        rounds_data = event.get("rounds", [])
+                        if rounds_data:
+                            last = rounds_data[-1]
+                            final_stage1 = last.get("stage1", [])
+                            final_stage2 = last.get("stage2") or []
+                            final_stage3 = last.get("stage3")
+                            final_label_to_model = last.get("metadata", {}).get("label_to_model", {})
+                            final_aggregate_rankings = last.get("metadata", {}).get("aggregate_rankings", [])
+
+                # Reassign for storage below
+                stage1_results = final_stage1
+                stage2_results = final_stage2
+                stage3_result = final_stage3
+                label_to_model = final_label_to_model
+                aggregate_rankings = final_aggregate_rankings
+
+                # Title
+                if title_task:
+                    try:
+                        title = await title_task
+                        storage.update_conversation_title(conversation_id, title)
+                        yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
+                    except Exception as e:
+                        print(f"Title error: {e}")
+
+                # Storage
+                metadata = {
+                    "execution_mode": body.execution_mode,
+                    "debate_rounds_configured": effective_rounds,
+                    "debate_rounds_executed": len(rounds_data),
+                    "converged": rounds_data[-1].get("converged", False) if rounds_data else False,
+                }
+                if body.execution_mode in ["chat_ranking", "full"]:
+                    metadata["label_to_model"] = label_to_model
+                    metadata["aggregate_rankings"] = aggregate_rankings
+                if search_context:
+                    metadata["search_context"] = search_context
+                if search_query:
+                    metadata["search_query"] = search_query
+
+                storage.add_assistant_message(
+                    conversation_id,
+                    stage1_results,
+                    stage2_results if body.execution_mode in ["chat_ranking", "full"] else None,
+                    stage3_result if body.execution_mode == "full" else None,
+                    metadata,
+                    rounds=rounds_data,
+                    conversation=conversation,
+                )
+
+                yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+
+            else:
+                # --- Existing single-round path (unchanged) ---
+
+                # Stage 1: Collect responses
+                yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
                 await asyncio.sleep(0.05)
 
-            # Stage 3: Only if mode is 'full'
-            if body.execution_mode == "full":
-                yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
+                total_models = 0
+
+                async for item in stage1_collect_responses(body.content, search_context, request, models_override=body.council_models, history=history):
+                    if isinstance(item, int):
+                        total_models = item
+                        print(f"DEBUG: Sending stage1_init with total={total_models}")
+                        yield f"data: {json.dumps({'type': 'stage1_init', 'total': total_models})}\n\n"
+                        continue
+
+                    stage1_results.append(item)
+                    yield f"data: {json.dumps({'type': 'stage1_progress', 'data': item, 'count': len(stage1_results), 'total': total_models})}\n\n"
+                    await asyncio.sleep(0.01)
+
+                yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
                 await asyncio.sleep(0.05)
 
-                # Check for disconnect before starting Stage 3
-                if await request.is_disconnected():
-                    print("Client disconnected before Stage 3")
-                    raise asyncio.CancelledError("Client disconnected")
+                # Check if any models responded successfully in Stage 1
+                if not any(r for r in stage1_results if not r.get('error')):
+                    error_msg = 'All models failed to respond in Stage 1, likely due to rate limits or API errors. Please try again or adjust your model selection.'
+                    storage.add_error_message(conversation_id, error_msg)
+                    yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+                    return # Stop further processing
 
-                stage3_result = await stage3_synthesize_final(body.content, stage1_results, stage2_results, search_context, chairman_override=body.chairman_model)
-                yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
+                # Stage 2: Only if mode is 'chat_ranking' or 'full'
+                if body.execution_mode in ["chat_ranking", "full"]:
+                    yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
+                    await asyncio.sleep(0.05)
 
-            # Wait for title generation if it was started
-            if title_task:
-                try:
-                    title = await title_task
-                    storage.update_conversation_title(conversation_id, title)
-                    yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
-                except Exception as e:
-                    print(f"Error waiting for title task: {e}")
+                    # Iterate over the async generator
+                    async for item in stage2_collect_rankings(body.content, stage1_results, search_context, request):
+                        # First item is the label mapping
+                        if isinstance(item, dict) and not item.get('model'):
+                            label_to_model = item
+                            # Send init event with total count
+                            yield f"data: {json.dumps({'type': 'stage2_init', 'total': len(label_to_model)})}\n\n"
+                            continue
 
-            # Save complete assistant message with metadata
-            metadata = {
-                "execution_mode": body.execution_mode,  # Save mode for historical context
-            }
-            
-            # Only include stage2/stage3 metadata if they were executed
-            if body.execution_mode in ["chat_ranking", "full"]:
-                metadata["label_to_model"] = label_to_model
-                metadata["aggregate_rankings"] = aggregate_rankings
-            
-            if search_context:
-                metadata["search_context"] = search_context
-            if search_query:
-                metadata["search_query"] = search_query
+                        # Subsequent items are results
+                        stage2_results.append(item)
 
-            storage.add_assistant_message(
-                conversation_id,
-                stage1_results,
-                stage2_results if body.execution_mode in ["chat_ranking", "full"] else None,
-                stage3_result if body.execution_mode == "full" else None,
-                metadata,
-                conversation=conversation
-            )
+                        # Send progress update
+                        print(f"Stage 2 Progress: {len(stage2_results)}/{len(label_to_model)} - {item['model']}")
+                        yield f"data: {json.dumps({'type': 'stage2_progress', 'data': item, 'count': len(stage2_results), 'total': len(label_to_model)})}\n\n"
+                        await asyncio.sleep(0.01)
 
-            # Send completion event
-            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                    aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
+                    yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings, 'search_query': search_query, 'search_context': search_context}})}\n\n"
+                    await asyncio.sleep(0.05)
+
+                # Stage 3: Only if mode is 'full'
+                if body.execution_mode == "full":
+                    yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
+                    await asyncio.sleep(0.05)
+
+                    # Check for disconnect before starting Stage 3
+                    if await request.is_disconnected():
+                        print("Client disconnected before Stage 3")
+                        raise asyncio.CancelledError("Client disconnected")
+
+                    stage3_result = await stage3_synthesize_final(body.content, stage1_results, stage2_results, search_context, chairman_override=body.chairman_model)
+                    yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
+
+                # Wait for title generation if it was started
+                if title_task:
+                    try:
+                        title = await title_task
+                        storage.update_conversation_title(conversation_id, title)
+                        yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
+                    except Exception as e:
+                        print(f"Error waiting for title task: {e}")
+
+                # Save complete assistant message with metadata
+                metadata = {
+                    "execution_mode": body.execution_mode,  # Save mode for historical context
+                }
+
+                # Only include stage2/stage3 metadata if they were executed
+                if body.execution_mode in ["chat_ranking", "full"]:
+                    metadata["label_to_model"] = label_to_model
+                    metadata["aggregate_rankings"] = aggregate_rankings
+
+                if search_context:
+                    metadata["search_context"] = search_context
+                if search_query:
+                    metadata["search_query"] = search_query
+
+                storage.add_assistant_message(
+                    conversation_id,
+                    stage1_results,
+                    stage2_results if body.execution_mode in ["chat_ranking", "full"] else None,
+                    stage3_result if body.execution_mode == "full" else None,
+                    metadata,
+                    conversation=conversation
+                )
+
+                # Send completion event
+                yield f"data: {json.dumps({'type': 'complete'})}\n\n"
 
         except asyncio.CancelledError:
             print(f"Stream cancelled for conversation {conversation_id}")
@@ -650,6 +734,12 @@ class UpdateSettingsRequest(BaseModel):
     stage2_prompt: Optional[str] = None
     stage3_prompt: Optional[str] = None
 
+    # Iterative Debate
+    critique_mode: Optional[str] = None
+    debate_rounds: Optional[int] = None
+    auto_converge: Optional[bool] = None
+    convergence_threshold: Optional[int] = None
+
 
 
 class TestTavilyRequest(BaseModel):
@@ -708,6 +798,12 @@ async def get_app_settings():
         "stage1_prompt": settings.stage1_prompt,
         "stage2_prompt": settings.stage2_prompt,
         "stage3_prompt": settings.stage3_prompt,
+
+        # Iterative Debate
+        "critique_mode": settings.critique_mode,
+        "debate_rounds": settings.debate_rounds,
+        "auto_converge": settings.auto_converge,
+        "convergence_threshold": settings.convergence_threshold,
     }
 
 
@@ -898,6 +994,21 @@ async def update_app_settings(request: UpdateSettingsRequest):
         _validate_execution_mode(request.execution_mode)
         updates["execution_mode"] = request.execution_mode
 
+    if request.critique_mode is not None:
+        if request.critique_mode not in ("freeform",):
+            raise HTTPException(status_code=400, detail="Only 'freeform' critique mode is supported")
+        updates["critique_mode"] = request.critique_mode
+    if request.debate_rounds is not None:
+        if not (1 <= request.debate_rounds <= MAX_DEBATE_ROUNDS):
+            raise HTTPException(status_code=400, detail=f"debate_rounds must be 1-{MAX_DEBATE_ROUNDS}")
+        updates["debate_rounds"] = request.debate_rounds
+    if request.auto_converge is not None:
+        updates["auto_converge"] = request.auto_converge
+    if request.convergence_threshold is not None:
+        if not (1 <= request.convergence_threshold <= MAX_DEBATE_ROUNDS):
+            raise HTTPException(status_code=400, detail="convergence_threshold must be 1-5")
+        updates["convergence_threshold"] = request.convergence_threshold
+
     if updates:
         settings = update_settings(**updates)
     else:
@@ -943,6 +1054,12 @@ async def update_app_settings(request: UpdateSettingsRequest):
         "stage1_prompt": settings.stage1_prompt,
         "stage2_prompt": settings.stage2_prompt,
         "stage3_prompt": settings.stage3_prompt,
+
+        # Iterative Debate
+        "critique_mode": settings.critique_mode,
+        "debate_rounds": settings.debate_rounds,
+        "auto_converge": settings.auto_converge,
+        "convergence_threshold": settings.convergence_threshold,
     }
 
 
