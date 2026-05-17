@@ -227,6 +227,7 @@ def add_assistant_message(
     stage2: Optional[List[Dict[str, Any]]] = None,
     stage3: Optional[Dict[str, Any]] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    rounds: Optional[List[Dict[str, Any]]] = None,
     conversation: Optional[Dict[str, Any]] = None
 ):
     """Add an assistant message to a conversation.
@@ -237,6 +238,7 @@ def add_assistant_message(
         stage2: List of model rankings (None if execution_mode was 'chat_only')
         stage3: Final synthesized response (None if execution_mode was not 'full')
         metadata: Optional metadata including execution_mode, label_to_model, etc.
+        rounds: Optional list of per-round data for multi-round debate
         conversation: Pre-loaded conversation dict (avoids redundant disk read)
     """
     if conversation is None:
@@ -255,6 +257,8 @@ def add_assistant_message(
         message["stage3"] = stage3
     if metadata:
         message["metadata"] = metadata
+    if rounds is not None:
+        message["rounds"] = rounds
 
     conversation["messages"].append(message)
 
