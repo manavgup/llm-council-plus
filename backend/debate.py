@@ -67,13 +67,6 @@ def _build_rankings_summary(
     return "\n".join(lines)
 
 
-def _get_model_rank(model: str, aggregate_rankings: List[Dict[str, Any]]) -> tuple:
-    """Get a model's rank position and total count."""
-    for i, r in enumerate(aggregate_rankings, 1):
-        if r["model"] == model:
-            return i, len(aggregate_rankings)
-    return len(aggregate_rankings), len(aggregate_rankings)
-
 
 async def run_iterative_debate(
     user_query: str,
@@ -115,8 +108,6 @@ async def run_iterative_debate(
     for round_num in range(1, num_rounds + 1):
         if request and await request.is_disconnected():
             raise asyncio.CancelledError("Client disconnected")
-
-        is_last_round = (round_num == num_rounds) or converged
 
         yield {"type": "round_start", "round": round_num, "total_rounds": num_rounds}
 

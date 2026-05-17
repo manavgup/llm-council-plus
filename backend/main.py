@@ -402,6 +402,7 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
 
                     if event_type == "debate_complete":
                         rounds_data = event.get("rounds", [])
+                        debate_converged = event.get("converged", False)
                         if rounds_data:
                             last = rounds_data[-1]
                             final_stage1 = last.get("stage1", [])
@@ -431,7 +432,7 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                     "execution_mode": body.execution_mode,
                     "debate_rounds_configured": effective_rounds,
                     "debate_rounds_executed": len(rounds_data),
-                    "converged": rounds_data[-1].get("converged", False) if rounds_data else False,
+                    "converged": debate_converged,
                 }
                 if body.execution_mode in ["chat_ranking", "full"]:
                     metadata["label_to_model"] = label_to_model
