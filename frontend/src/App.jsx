@@ -281,6 +281,13 @@ function App() {
         stage2: null,
         stage3: null,
         metadata: null,
+        // Iterative debate
+        rounds: [],
+        currentRound: 1,
+        totalRounds: 1,
+        converged: false,
+        convergenceRound: null,
+        roundTransition: false,
         loading: {
           search: false,
           stage1: false,
@@ -610,6 +617,67 @@ function App() {
             case 'error':
               console.error('Stream error:', event.message);
               setIsLoading(false);
+              break;
+
+            case 'round_start':
+              setCurrentConversation((prev) => {
+                const messages = [...prev.messages];
+                const lastMsg = messages[messages.length - 1];
+                messages[messages.length - 1] = {
+                  ...lastMsg,
+                  currentRound: event.round,
+                  totalRounds: event.total_rounds,
+                  roundTransition: false,
+                };
+                return { ...prev, messages };
+              });
+              break;
+
+            case 'round_complete':
+              setCurrentConversation((prev) => {
+                const messages = [...prev.messages];
+                const lastMsg = messages[messages.length - 1];
+                const isLastRound = event.round >= lastMsg.totalRounds || lastMsg.converged;
+                messages[messages.length - 1] = {
+                  ...lastMsg,
+                  rounds: [...(lastMsg.rounds || []), {
+                    round_number: event.round,
+                    stage1: lastMsg.stage1,
+                    stage2: lastMsg.stage2,
+                    stage3: lastMsg.stage3,
+                    metadata: lastMsg.metadata,
+                  }],
+                  ...(isLastRound ? {} : {
+                    stage1: null,
+                    stage2: null,
+                    stage3: null,
+                    metadata: null,
+                    roundTransition: true,
+                    loading: { search: false, stage1: false, stage2: false, stage3: false },
+                    progress: {
+                      stage1: { count: 0, total: 0, currentModel: null },
+                      stage2: { count: 0, total: 0, currentModel: null },
+                    },
+                  }),
+                };
+                return { ...prev, messages };
+              });
+              break;
+
+            case 'convergence':
+              setCurrentConversation((prev) => {
+                const messages = [...prev.messages];
+                const lastMsg = messages[messages.length - 1];
+                messages[messages.length - 1] = {
+                  ...lastMsg,
+                  converged: true,
+                  convergenceRound: event.round,
+                };
+                return { ...prev, messages };
+              });
+              break;
+
+            case 'debate_complete':
               break;
 
             default:
