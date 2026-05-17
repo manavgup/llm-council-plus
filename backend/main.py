@@ -603,6 +603,40 @@ async def send_message_sync(conversation_id: str, body: SendMessageRequest):
         settings = get_settings()
         search_context, search_query, _ = await _fetch_search_context(body.content, settings)
 
+    settings = get_settings()
+    effective_rounds = body.debate_rounds if body.debate_rounds is not None else settings.debate_rounds
+
+    if effective_rounds > 1:
+        rounds_data = []
+        async for event in run_iterative_debate(
+            body.content, search_context, None, body.execution_mode,
+            models_override=body.council_models,
+            chairman_override=body.chairman_model,
+            history=history,
+            debate_rounds=effective_rounds,
+        ):
+            if event.get("type") == "debate_complete":
+                rounds_data = event.get("rounds", [])
+
+        last = rounds_data[-1] if rounds_data else {}
+        s1 = last.get("stage1", [])
+        s2 = last.get("stage2")
+        s3 = last.get("stage3")
+        lm = last.get("metadata", {}).get("label_to_model", {})
+        ar = last.get("metadata", {}).get("aggregate_rankings", [])
+
+        metadata = {"execution_mode": body.execution_mode, "debate_rounds_executed": len(rounds_data)}
+        if body.execution_mode in ("chat_ranking", "full"):
+            metadata["label_to_model"] = lm
+            metadata["aggregate_rankings"] = ar
+        if search_context:
+            metadata["search_context"] = search_context
+        if search_query:
+            metadata["search_query"] = search_query
+
+        storage.add_assistant_message(conversation_id, s1, s2, s3, metadata, rounds=rounds_data, conversation=conversation)
+        return {"stage1": s1, "stage2": s2, "stage3": s3, "aggregate_rankings": ar or None, "label_to_model": lm or None}
+
     result = await _run_council_pipeline(
         body.content, body.execution_mode, search_context,
         models_override=body.council_models, chairman_override=body.chairman_model,
@@ -648,6 +682,36 @@ async def ask_oneshot(body: AskRequest):
     search_context = ""
     if body.web_search:
         search_context, _, _ = await _fetch_search_context(body.content, settings)
+
+    effective_rounds = body.debate_rounds if body.debate_rounds is not None else settings.debate_rounds
+
+    if effective_rounds > 1:
+        rounds_data = []
+        async for event in run_iterative_debate(
+            body.content, search_context, None, body.execution_mode,
+            models_override=models,
+            chairman_override=body.chairman_model,
+            debate_rounds=effective_rounds,
+        ):
+            if event.get("type") == "debate_complete":
+                rounds_data = event.get("rounds", [])
+
+        last = rounds_data[-1] if rounds_data else {}
+        s1 = last.get("stage1", [])
+        s2 = last.get("stage2")
+        s3 = last.get("stage3")
+        lm = last.get("metadata", {}).get("label_to_model", {})
+        ar = last.get("metadata", {}).get("aggregate_rankings", [])
+
+        return {
+            "response": s3.get("response") if s3 else None,
+            "chairman_model": s3.get("model") if s3 else None,
+            "responses": s1,
+            "rankings": s2,
+            "aggregate_rankings": ar,
+            "label_to_model": lm,
+            "debate_rounds_executed": len(rounds_data),
+        }
 
     result = await _run_council_pipeline(
         body.content, body.execution_mode, search_context,
