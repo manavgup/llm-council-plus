@@ -233,3 +233,22 @@ Final round rankings:
 {stage2_text}
 
 Deliver the definitive answer. Explain which claims survived scrutiny, which were dropped, and which were adopted across models. Declare the winner."""
+
+STAGE4_CORRECTED_DRAFT_PROMPT = """You are the Chairman of an LLM Council. After {total_rounds} rounds of deliberation, the council has produced a final verdict with specific claim corrections.
+
+Your task: produce a CORRECTED DRAFT of the original document that incorporates ALL corrections, fixes flawed claims, strengthens weak claims, and applies every recommendation from the verdict.
+
+ORIGINAL DOCUMENT:
+{original_text}
+
+COUNCIL'S FINAL VERDICT (with claim corrections):
+{verdict_text}
+
+Instructions:
+- Rewrite the original document incorporating every correction identified in the verdict
+- Fix all claims marked FLAWED (replace with the corrected versions if provided)
+- Strengthen all claims marked WEAK with proper qualification or sourcing
+- Incorporate adopted improvements from the deliberation
+- Preserve the original document's structure, tone, and intent
+- Mark significant changes with [REVISED] or [NEW] inline so the author can see what changed
+- Do NOT add commentary or meta-discussion — produce only the corrected document"""

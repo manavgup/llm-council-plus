@@ -280,6 +280,7 @@ function App() {
         stage1: null,
         stage2: null,
         stage3: null,
+        stage4: null,
         metadata: null,
         // Iterative debate
         rounds: [],
@@ -293,6 +294,7 @@ function App() {
           stage1: false,
           stage2: false,
           stage3: false,
+          stage4: false,
         },
         timers: {
           stage1Start: null,
@@ -301,6 +303,8 @@ function App() {
           stage2End: null,
           stage3Start: null,
           stage3End: null,
+          stage4Start: null,
+          stage4End: null,
         },
         progress: {
           stage1: { count: 0, total: 0, currentModel: null },
@@ -601,6 +605,33 @@ function App() {
               });
               // Hide loading indicator once final answer is shown
               setIsLoading(false);
+              break;
+
+            case 'stage4_start':
+              setCurrentConversation((prev) => {
+                const messages = [...prev.messages];
+                const lastMsg = messages[messages.length - 1];
+                messages[messages.length - 1] = {
+                  ...lastMsg,
+                  loading: { ...lastMsg.loading, stage4: true },
+                  timers: { ...lastMsg.timers, stage4Start: Date.now() },
+                };
+                return { ...prev, messages };
+              });
+              break;
+
+            case 'stage4_complete':
+              setCurrentConversation((prev) => {
+                const messages = [...prev.messages];
+                const lastMsg = messages[messages.length - 1];
+                messages[messages.length - 1] = {
+                  ...lastMsg,
+                  stage4: event.data,
+                  loading: { ...lastMsg.loading, stage4: false },
+                  timers: { ...lastMsg.timers, stage4End: Date.now() },
+                };
+                return { ...prev, messages };
+              });
               break;
 
             case 'title_complete':

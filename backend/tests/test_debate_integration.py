@@ -193,6 +193,11 @@ async def test_final_round_uses_prompt_override(mock_settings):
         async for event in run_iterative_debate("test?", "", None, "full", debate_rounds=2):
             events.append(event)
 
-        assert mock_s3.call_count == 2
-        final_call = mock_s3.call_args_list[1]
-        assert final_call.kwargs.get("prompt_override") is not None
+        # 2 rounds of Stage 3 + 1 Stage 4 corrected draft = 3 calls
+        assert mock_s3.call_count == 3
+        # The second call (final round Stage 3) should have prompt_override
+        final_round_call = mock_s3.call_args_list[1]
+        assert final_round_call.kwargs.get("prompt_override") is not None
+        # The third call (Stage 4 corrected draft) should also have prompt_override
+        stage4_call = mock_s3.call_args_list[2]
+        assert stage4_call.kwargs.get("prompt_override") is not None

@@ -390,6 +390,7 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                 final_aggregate_rankings = []
                 final_canonical_claims = None
                 final_aggregate_claim_verdicts = None
+                final_stage4 = None
                 debate_critique_mode = "freeform"
 
                 async for event in run_iterative_debate(
@@ -417,6 +418,7 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                             final_aggregate_rankings = last_meta.get("aggregate_rankings", [])
                             final_canonical_claims = last_meta.get("canonical_claims")
                             final_aggregate_claim_verdicts = last_meta.get("aggregate_claim_verdicts")
+                        final_stage4 = event.get("stage4")
 
                 # Reassign for storage below
                 stage1_results = final_stage1
@@ -449,6 +451,8 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                     metadata["canonical_claims"] = final_canonical_claims
                 if final_aggregate_claim_verdicts:
                     metadata["aggregate_claim_verdicts"] = final_aggregate_claim_verdicts
+                if final_stage4:
+                    metadata["stage4"] = final_stage4
                 if search_context:
                     metadata["search_context"] = search_context
                 if search_query:

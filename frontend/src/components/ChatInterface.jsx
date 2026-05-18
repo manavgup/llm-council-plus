@@ -9,6 +9,7 @@ import CouncilGrid from './CouncilGrid';
 import ExecutionModeToggle from './ExecutionModeToggle';
 import RoundNavigator from './RoundNavigator';
 import { ClaimEvolution } from './ClaimCards';
+import Stage4, { Stage4Skeleton } from './Stage4';
 import { api } from '../api';
 import './ChatInterface.css';
 
@@ -230,6 +231,18 @@ export default function ChatInterface({
                                             <ClaimEvolution
                                                 rounds={msg.rounds}
                                                 labelToModel={msg.metadata?.label_to_model}
+                                            />
+                                        )}
+
+                                        {/* Stage 4: Corrected Draft */}
+                                        {msg.loading?.stage4 && (
+                                            <Stage4Skeleton />
+                                        )}
+                                        {(msg.stage4 || msg.metadata?.stage4) && (
+                                            <Stage4
+                                                correctedDraft={msg.stage4 || msg.metadata?.stage4}
+                                                startTime={msg.timers?.stage4Start}
+                                                endTime={msg.timers?.stage4End}
                                             />
                                         )}
 

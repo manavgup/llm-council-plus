@@ -112,7 +112,19 @@ async def extract_canonical_claims(
         return None
 
     content = response.get("content", "")
-    return extract_json_block(content)
+    result = extract_json_block(content)
+
+    # Validate shape: must be {label: [{id, claim}]}
+    if not isinstance(result, dict):
+        logger.warning("Claim extraction returned non-dict (%s), falling back to free-form", type(result).__name__)
+        return None
+    # Verify values are lists of dicts with 'id' and 'claim' keys
+    for key, claims in result.items():
+        if not isinstance(claims, list):
+            logger.warning("Claim extraction value for '%s' is not a list, falling back", key)
+            return None
+
+    return result
 
 
 def aggregate_claim_verdicts(
@@ -739,11 +751,37 @@ async def run_iterative_debate(
         if converged:
             break
 
+    # --- Stage 4: Corrected Draft (after all rounds, if full mode) ---
+    stage4_result: Optional[Dict[str, Any]] = None
+
+    if execution_mode == "full" and previous_synthesis and num_rounds >= 1:
+        if request and await request.is_disconnected():
+            raise asyncio.CancelledError("Client disconnected")
+
+        yield {"type": "stage4_start"}
+        await asyncio.sleep(0.05)
+
+        from .prompts import STAGE4_CORRECTED_DRAFT_PROMPT
+
+        stage4_prompt = STAGE4_CORRECTED_DRAFT_PROMPT.format(
+            total_rounds=len(all_rounds_data),
+            original_text=truncate_text(user_query, 12000),
+            verdict_text=truncate_text(previous_synthesis, 10000),
+        )
+
+        stage4_result = await stage3_synthesize_final(
+            user_query, [], [], "",
+            chairman_override=chairman_override,
+            prompt_override=stage4_prompt,
+        )
+        yield {"type": "stage4_complete", "data": stage4_result}
+
     # Final event with all data for storage
     yield {
         "type": "debate_complete",
         "total_rounds_executed": len(all_rounds_data),
         "converged": converged,
         "critique_mode": critique_mode,
+        "stage4": stage4_result,
         "rounds": all_rounds_data,
     }
