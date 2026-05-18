@@ -388,6 +388,9 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                 final_stage3 = None
                 final_label_to_model = {}
                 final_aggregate_rankings = []
+                final_canonical_claims = None
+                final_aggregate_claim_verdicts = None
+                debate_critique_mode = "freeform"
 
                 async for event in run_iterative_debate(
                     body.content, search_context, request, body.execution_mode,
@@ -403,13 +406,17 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                     if event_type == "debate_complete":
                         rounds_data = event.get("rounds", [])
                         debate_converged = event.get("converged", False)
+                        debate_critique_mode = event.get("critique_mode", "freeform")
                         if rounds_data:
                             last = rounds_data[-1]
                             final_stage1 = last.get("stage1", [])
                             final_stage2 = last.get("stage2") or []
                             final_stage3 = last.get("stage3")
-                            final_label_to_model = last.get("metadata", {}).get("label_to_model", {})
-                            final_aggregate_rankings = last.get("metadata", {}).get("aggregate_rankings", [])
+                            last_meta = last.get("metadata", {})
+                            final_label_to_model = last_meta.get("label_to_model", {})
+                            final_aggregate_rankings = last_meta.get("aggregate_rankings", [])
+                            final_canonical_claims = last_meta.get("canonical_claims")
+                            final_aggregate_claim_verdicts = last_meta.get("aggregate_claim_verdicts")
 
                 # Reassign for storage below
                 stage1_results = final_stage1
@@ -430,6 +437,7 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                 # Storage
                 metadata = {
                     "execution_mode": body.execution_mode,
+                    "critique_mode": debate_critique_mode,
                     "debate_rounds_configured": effective_rounds,
                     "debate_rounds_executed": len(rounds_data),
                     "converged": debate_converged,
@@ -437,6 +445,10 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
                 if body.execution_mode in ["chat_ranking", "full"]:
                     metadata["label_to_model"] = label_to_model
                     metadata["aggregate_rankings"] = aggregate_rankings
+                if final_canonical_claims:
+                    metadata["canonical_claims"] = final_canonical_claims
+                if final_aggregate_claim_verdicts:
+                    metadata["aggregate_claim_verdicts"] = final_aggregate_claim_verdicts
                 if search_context:
                     metadata["search_context"] = search_context
                 if search_query:

@@ -6,20 +6,13 @@
     <title>Phase 2 Evidence: Claim-Level Debate in Action</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f172a; color: #e2e8f0; line-height: 1.6; padding: 40px 20px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a; color: #e2e8f0; line-height: 1.6; padding: 40px 20px; }
         .container { max-width: 1100px; margin: 0 auto; }
         h1 { font-size: 2rem; margin-bottom: 8px;
             background: linear-gradient(135deg, #3b82f6, #06b6d4);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .subtitle { color: #94a3b8; font-size: 1rem; margin-bottom: 32px; }
-        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-        .badge-pass { background: rgba(34,197,94,0.15); color: #22c55e; }
-        .badge-new { background: rgba(59,130,246,0.15); color: #3b82f6; }
-        .badge-warn { background: rgba(234,179,8,0.15); color: #eab308; }
-        .badge-fix { background: rgba(168,85,247,0.15); color: #a855f7; }
         .section { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.08);
             border-radius: 12px; padding: 24px; margin-bottom: 24px; }
         .section h2 { font-size: 1.25rem; margin-bottom: 16px; }
@@ -36,20 +29,14 @@
         table { width: 100%; border-collapse: collapse; margin: 12px 0; }
         th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
         th { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        td { font-size: 0.9rem; }
         td code { background: rgba(59,130,246,0.1); padding: 1px 6px; border-radius: 3px; font-size: 0.8rem; }
-        .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; }
-        .claim-row { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
-        .claim-id { font-family: monospace; font-weight: 700; color: #94a3b8; min-width: 32px; }
-        .claim-text { color: #e2e8f0; font-style: italic; }
-        .verdict-strong { color: #22c55e; font-weight: 700; }
-        .verdict-weak { color: #eab308; font-weight: 700; }
-        .verdict-flawed { color: #ef4444; font-weight: 700; }
-        .verdict-acceptable { color: #eab308; font-weight: 700; }
-        .arrow { color: #3b82f6; font-size: 1.5rem; text-align: center; padding: 8px; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge-pass { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .badge-new { background: rgba(59,130,246,0.15); color: #3b82f6; }
         .highlight-box { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
             border-radius: 8px; padding: 16px; margin: 12px 0; }
         .highlight-box.green { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); }
+        .highlight-box.red { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); }
         .quote { border-left: 3px solid #3b82f6; padding-left: 16px; margin: 12px 0;
             color: #94a3b8; font-style: italic; }
     </style>
@@ -59,24 +46,24 @@
 
 <h1>Phase 2 Evidence: Claim-Level Debate in Action</h1>
 <p class="subtitle">
-    Live 2-round claim-mode debate with 4 models, captured 2026-05-18.
-    Branch: <code>feat/iterative-debate-phase2</code> |
+    Live 2-round claim-mode debate: "Should governments ban social media for children under 16?"
+    with 4 models. Captured 2026-05-18.
     PR: <a href="https://github.com/manavgup/llm-council-plus/pull/11" style="color:#3b82f6">#11</a>
 </p>
 
-<!-- Hero Stats -->
+<!-- Stats -->
 <div class="grid-2" style="margin-bottom: 24px;">
     <div class="stat-card">
-        <div class="stat-number">101 &rarr; 95</div>
+        <div class="stat-number">81 &rarr; 96</div>
         <div class="stat-label">Claims Extracted (R1 &rarr; R2)</div>
     </div>
     <div class="stat-card">
-        <div class="stat-number">98% &rarr; 100%</div>
-        <div class="stat-label">Claims Rated STRONG</div>
+        <div class="stat-number" style="color: #ef4444;">2 FLAWED</div>
+        <div class="stat-label">Claims Caught &amp; Dropped in Round 2</div>
     </div>
     <div class="stat-card">
-        <div class="stat-number">2 &rarr; 0</div>
-        <div class="stat-label">Non-Strong Claims Fixed</div>
+        <div class="stat-number">49</div>
+        <div class="stat-label">Tests Passing</div>
     </div>
     <div class="stat-card">
         <div class="stat-number">4 models</div>
@@ -84,236 +71,206 @@
     </div>
 </div>
 
-<!-- 1. The Question -->
+<!-- 1. ClaimCards UI -->
 <div class="section">
-    <h2>1. The Debate Question</h2>
-    <div class="highlight-box" style="font-size: 1.1rem;">
-        "Is nuclear fusion a viable energy source within the next 20 years?
-        Consider technical feasibility, economic factors, and political will."
-    </div>
-    <p style="margin-top: 8px; color: #94a3b8;">
-        <strong>Config:</strong> Claim-level critique mode, 2 rounds, 4 council models
-        (gpt-5.4-mini, claude-opus-4-6, deepseek-v4-flash, gemini-2.5-flash-lite),
-        chairman: claude-sonnet-4-6
-    </p>
-</div>
+    <h2>1. Claim-Level Evaluation: ClaimCards in Action</h2>
+    <p>After models respond, the chairman decomposes all responses into canonical claims.
+       Peers then evaluate each claim as STRONG, WEAK, or FLAWED.</p>
 
-<!-- 2. Round 1: Claim Extraction -->
-<div class="section">
-    <h2>2. Round 1: Claims Extracted &amp; Evaluated</h2>
-    <p>After Stage 1 responses, the chairman decomposed all 4 responses into <strong>101 canonical claims</strong>.
-       Each claim was then evaluated by all peers as STRONG, WEAK, or FLAWED.</p>
-
-    <h3>Two claims did NOT get unanimous STRONG in Round 1:</h3>
-    <div class="highlight-box" style="border-color: rgba(234,179,8,0.3); background: rgba(234,179,8,0.05);">
-        <div class="claim-row">
-            <span class="claim-id">B3</span>
-            <span class="verdict-acceptable">ACCEPTABLE (50%)</span>
-            <span class="claim-text">"ITER aims for first plasma in 2025-2027"</span>
+    <div class="screenshot">
+        <img src="screenshots/31-claim-cards-verdicts.png" alt="ClaimCards showing individual claims with STRONG verdicts">
+        <div class="screenshot-caption">
+            ClaimCards UI: each claim is a card with ID (A1, A2...), verdict badge (STRONG), agreement percentage (100%),
+            and the claim text. Green left border = STRONG. Cards are grouped by source model ("Response A: gpt-5.4-mini").
         </div>
-        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
-            (DeepSeek's claim. Date was contested by peers as potentially outdated given ITER delays.)
-        </p>
-        <div class="claim-row" style="margin-top: 8px;">
-            <span class="claim-id">D26</span>
-            <span class="verdict-acceptable">ACCEPTABLE (67%)</span>
-            <span class="claim-text">"Fusion is now genuinely 20 to 30 years from demonstration and 30 to 40 years from meaningful deployment"</span>
+    </div>
+
+    <div class="grid-2">
+        <div class="screenshot">
+            <img src="screenshots/22-claim-stage2-verdicts.png" alt="More claim cards scrolled down">
+            <div class="screenshot-caption">Claims continue across all responses. Each model's claims are grouped under their response label.</div>
         </div>
-        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
-            (Claude's claim. Peers saw it as vague "always 30 years away" framing rather than a falsifiable statement.)
-        </p>
-    </div>
-
-    <p style="margin-top: 12px;">The other <strong>99 claims were rated STRONG</strong> with high agreement (most at 100%).</p>
-
-    <h3>Round 1 Rankings</h3>
-    <table>
-        <tr><th>#</th><th>Model</th><th>Avg Rank</th></tr>
-        <tr><td>1</td><td>gpt-5.4-mini</td><td>1.75</td></tr>
-        <tr><td>2</td><td>deepseek-v4-flash</td><td>2.00</td></tr>
-        <tr><td>3</td><td>claude-opus-4-6</td><td>2.00</td></tr>
-        <tr><td>4</td><td>gemini-2.5-flash-lite</td><td>4.00</td></tr>
-    </table>
-
-    <div class="screenshot">
-        <img src="screenshots/06-debate-conversation.png" alt="Round 1 Stage 2 showing claim verdicts">
-        <div class="screenshot-caption">Stage 2 showing per-evaluator claim verdicts. Each model rated all 101 canonical claims.</div>
+        <div class="screenshot">
+            <img src="screenshots/24-claim-leaderboard.png" alt="Claims and leaderboard">
+            <div class="screenshot-caption">Final claims before leaderboard. Note claims B23-B26 with STRONG verdicts and 100% agreement.</div>
+        </div>
     </div>
 </div>
 
-<!-- 3. Round 2: Targeted Revision -->
+<!-- 2. Claims Flagged as Flawed -->
 <div class="section">
-    <h2>3. Round 2: Models Revise with Claim Feedback</h2>
+    <h2>2. The Key Evidence: Claims Flagged and Dropped</h2>
+    <p>In Round 2, models expanded their arguments (81 &rarr; 96 claims). Two new claims were peer-reviewed and <strong>flagged as FLAWED</strong>:</p>
 
-    <p>Each model received <strong>personalized feedback</strong> in Round 2:</p>
-    <ul style="margin: 8px 0 16px 24px; color: #94a3b8;">
-        <li>Their own claims with peer verdicts (B3 was flagged ACCEPTABLE for DeepSeek)</li>
-        <li>Top-rated STRONG claims from other models for cross-pollination</li>
-    </ul>
-
-    <h3>What changed?</h3>
-
-    <div class="highlight-box green">
-        <strong style="color: #22c55e;">All 95 claims in Round 2 are STRONG (100%)</strong>
-        <p style="margin-top: 4px; color: #94a3b8;">
-            The 2 non-strong claims from Round 1 were addressed:
+    <div class="highlight-box red">
+        <div style="display:flex; gap:8px; align-items:baseline; margin-bottom:8px;">
+            <span style="font-family:monospace; font-weight:700; color:#94a3b8;">B4</span>
+            <span style="color:#ef4444; font-weight:700;">FLAWED (33% agree)</span>
+        </div>
+        <p style="font-style:italic; color:#e2e8f0;">"Blue light emitted from screens can interfere with natural sleep cycles."</p>
+        <p style="font-size:0.85rem; color:#94a3b8; margin-top:8px;">
+            Peers found this too definitive. Blue light effects are real but debated, and the mechanism isn't specific to social media.
         </p>
-        <ul style="margin: 8px 0 0 24px; color: #94a3b8;">
-            <li><strong>B3</strong> (ITER first plasma date) &mdash; DeepSeek refined the claim in Round 2, adding
-                qualification about repeated delays. See C16/C17 in Round 2.</li>
-            <li><strong>D26</strong> (vague "30 years" framing) &mdash; Claude dropped the vague claim entirely in
-                Round 2 and replaced it with more specific timeline claims (B27, B31, B32).</li>
-        </ul>
     </div>
 
-    <h3>Response Growth (models elaborated with feedback)</h3>
-    <table>
-        <tr><th>Model</th><th>Round 1</th><th>Round 2</th><th>Change</th></tr>
-        <tr><td>gpt-5.4-mini</td><td>2,974 chars</td><td>3,326 chars</td><td style="color:#22c55e">+12%</td></tr>
-        <tr><td>deepseek-v4-flash</td><td>4,151 chars</td><td>6,110 chars</td><td style="color:#22c55e">+47%</td></tr>
-        <tr><td>claude-opus-4-6</td><td>4,446 chars</td><td>4,891 chars</td><td style="color:#22c55e">+10%</td></tr>
-        <tr><td>gemini-2.5-flash-lite</td><td>9,139 chars</td><td colspan="2" style="color:#94a3b8">(timed out in Round 2)</td></tr>
-    </table>
-
-    <h3>Rankings Shifted</h3>
-    <table>
-        <tr><th>Model</th><th>Round 1</th><th>Round 2</th><th>Movement</th></tr>
-        <tr><td>gpt-5.4-mini</td><td>#1 (1.75)</td><td>#1 (1.67)</td><td>Held top</td></tr>
-        <tr><td>claude-opus-4-6</td><td>#3 (2.00)</td><td><strong style="color:#22c55e">#2 (1.67)</strong></td><td style="color:#22c55e">Up 1</td></tr>
-        <tr><td>deepseek-v4-flash</td><td>#2 (2.00)</td><td>#3 (2.67)</td><td style="color:#ef4444">Down 1</td></tr>
-    </table>
-
-    <div class="screenshot">
-        <img src="screenshots/11-debate-scroll-4.png" alt="Round 2 Visual Leaderboard and Chairman verdict">
-        <div class="screenshot-caption">Round 2 Visual Leaderboard showing updated rankings and the start of the Chairman's FINAL VERDICT.</div>
+    <div class="highlight-box red">
+        <div style="display:flex; gap:8px; align-items:baseline; margin-bottom:8px;">
+            <span style="font-family:monospace; font-weight:700; color:#94a3b8;">D7</span>
+            <span style="color:#ef4444; font-weight:700;">FLAWED (67% agree)</span>
+        </div>
+        <p style="font-style:italic; color:#e2e8f0;">"Some effect sizes in social media studies are comparable to those associated with wearing glasses."</p>
+        <p style="font-size:0.85rem; color:#94a3b8; margin-top:8px;">
+            The glasses analogy was flagged as misleading. It trivializes real correlations and isn't a standard epidemiological comparison.
+        </p>
     </div>
-</div>
 
-<!-- 4. Chairman's Final Verdict -->
-<div class="section">
-    <h2>4. Chairman's Final Verdict References Claim Consensus</h2>
-
+    <h3>The Chairman's Final Verdict Addresses Them Directly</h3>
     <div class="screenshot">
-        <img src="screenshots/12-debate-scroll-5.png" alt="Chairman final verdict">
-        <div class="screenshot-caption">The chairman's final synthesis explicitly references claim-level consensus from the debate.</div>
+        <img src="screenshots/35-verdict-end.png" alt="Chairman verdict addressing flawed claims">
+        <div class="screenshot-caption">
+            The chairman's final synthesis includes a "Claims Dropped or Flagged as Flawed" section
+            that explicitly addresses B4 and D7 with reasons for dropping them.
+        </div>
     </div>
 
     <div class="quote">
-        "After two full rounds of deliberation across three models, <strong>all claims reached STRONG consensus</strong>.
-        There were no contested or dropped claims. Two claims received moderate qualifications from one model
-        (B32 on deployment timelines; C16/C17 on ITER schedules), and these are noted below.
-        The winner is <strong>Response B (Claude)</strong>, which was ranked first by one model and second by two others,
-        and which provided the most analytically rigorous, evidence-specific, and well-structured synthesis."
+        "<strong>B4 (blue light mechanism):</strong> Flagged as flawed by two models. Blue light effects on sleep are real but the
+        magnitude is debated, the mechanism is not specific to social media, and the claim was stated more
+        definitively than the evidence warrants. <em>Dropped from consensus.</em>"
+    </div>
+</div>
+
+<!-- 3. Leaderboard + Chairman Verdict -->
+<div class="section">
+    <h2>3. Rankings and Chairman's Final Verdict</h2>
+
+    <div class="screenshot">
+        <img src="screenshots/32-leaderboard.png" alt="Visual leaderboard showing model rankings">
+        <div class="screenshot-caption">
+            Visual Leaderboard: #1 claude-opus-4-6 (1.67), #2 deepseek-v4-flash (1.67), #3 gpt-5.4-mini (2.67), #4 gemini (4.00).
+        </div>
     </div>
 
-    <p style="margin-top: 12px; color: #94a3b8;">
-        The chairman used claim verdict data to make its final determination. This is the key Phase 2 improvement:
-        the synthesis is grounded in specific, evaluated claims rather than vague impressions.
-    </p>
+    <div class="screenshot">
+        <img src="screenshots/34-verdict-text.png" alt="Chairman's FINAL VERDICT">
+        <div class="screenshot-caption">
+            Stage 3: Chairman delivers "FINAL VERDICT: Should Governments Ban Social Media for Children Under 16?"
+            with a Procedural Summary referencing convergence on claims and model rankings.
+        </div>
+    </div>
+
+    <div class="quote">
+        "After two rounds of deliberation across four models, the Council reached strong convergence on the central
+        conclusion and on the vast majority of supporting claims. Three of four models ranked Response D (Claude)
+        first... The deliberation produced a remarkably stable evidentiary record with only three claims flagged as flawed."
+    </div>
+</div>
+
+<!-- 4. Round-over-Round Comparison -->
+<div class="section">
+    <h2>4. Round-over-Round: How Claims Evolved</h2>
+    <table>
+        <tr><th></th><th>Round 1</th><th>Round 2</th><th>What Happened</th></tr>
+        <tr>
+            <td>Total Claims</td>
+            <td>81</td>
+            <td>96</td>
+            <td>Models added 15 new claims after getting peer feedback</td>
+        </tr>
+        <tr>
+            <td>STRONG</td>
+            <td style="color:#22c55e">81 (100%)</td>
+            <td style="color:#22c55e">94 (98%)</td>
+            <td>94 claims survived peer scrutiny</td>
+        </tr>
+        <tr>
+            <td>FLAWED</td>
+            <td>0</td>
+            <td style="color:#ef4444">2</td>
+            <td>B4 and D7 caught by peers, dropped by chairman</td>
+        </tr>
+    </table>
+
+    <p style="margin-top:12px;">This shows the system working as designed: more claims are generated as models elaborate, peer review catches weak ones, and the chairman drops them from the final synthesis.</p>
 </div>
 
 <!-- 5. Settings UI -->
 <div class="section">
-    <h2>5. Settings: Critique Mode Selection</h2>
+    <h2>5. Settings: Three Critique Modes</h2>
     <div class="grid-2">
-        <div>
-            <div class="screenshot">
-                <img src="screenshots/01-settings-critique-mode.png" alt="Settings with freeform selected">
-                <div class="screenshot-caption">Free-form mode (default, Phase 1 behavior)</div>
-            </div>
+        <div class="screenshot">
+            <img src="screenshots/01-settings-critique-mode.png" alt="Settings with freeform">
+            <div class="screenshot-caption">Free-form mode (Phase 1 default)</div>
         </div>
-        <div>
-            <div class="screenshot">
-                <img src="screenshots/02-settings-claim-mode-selected.png" alt="Claim mode selected">
-                <div class="screenshot-caption">Claim-level selected with cost hint</div>
-            </div>
+        <div class="screenshot">
+            <img src="screenshots/02-settings-claim-mode-selected.png" alt="Claim mode selected">
+            <div class="screenshot-caption">Claim-level selected with cost hint</div>
         </div>
     </div>
 </div>
 
-<!-- 6. API Validation -->
+<!-- 6. Architecture -->
 <div class="section">
-    <h2>6. API Validation</h2>
-    <table>
-        <tr><th>Request</th><th>Result</th></tr>
-        <tr><td class="mono">PUT /api/settings {"critique_mode": "freeform"}</td><td><span class="badge badge-pass">200 OK</span></td></tr>
-        <tr><td class="mono">PUT /api/settings {"critique_mode": "paragraph"}</td><td><span class="badge badge-pass">200 OK</span></td></tr>
-        <tr><td class="mono">PUT /api/settings {"critique_mode": "claim"}</td><td><span class="badge badge-pass">200 OK</span></td></tr>
-        <tr><td class="mono">PUT /api/settings {"critique_mode": "invalid"}</td><td><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">400 Rejected</span></td></tr>
-    </table>
-</div>
-
-<!-- 7. Test Results -->
-<div class="section">
-    <h2>7. Test Suite: 49 Tests Passing <span class="badge badge-pass">ALL PASS</span></h2>
-    <table>
-        <tr><th>Test File</th><th>Tests</th><th>What's Covered</th></tr>
-        <tr><td><code>test_debate.py</code></td><td>23 <span class="badge badge-new">+12 new</span></td>
-            <td>convergence, truncation, paragraph segmentation, claim aggregation, cross-pollination</td></tr>
-        <tr><td><code>test_debate_integration.py</code></td><td>8</td>
-            <td>multi-round orchestration, convergence, prompt override</td></tr>
-        <tr><td><code>test_json_repair.py</code></td><td>8 <span class="badge badge-new">new</span></td>
-            <td>JSON extraction, repair, markdown fence, arrays, edge cases</td></tr>
-        <tr><td><code>test_settings_backup.py</code></td><td>10</td>
-            <td>export, import, reset, auth</td></tr>
-    </table>
-</div>
-
-<!-- 8. Architecture -->
-<div class="section">
-    <h2>8. How Claim-Level Debate Works</h2>
-    <div style="background:#1a1a2e; border-radius:8px; padding:20px; font-family:monospace; font-size:0.8rem; line-height:1.8;">
+    <h2>6. How It Works</h2>
+    <div style="background:#1a1a2e; border-radius:8px; padding:20px; font-family:monospace; font-size:0.8rem; line-height:1.8; overflow-x:auto;">
 <span style="color:#3b82f6;font-weight:bold">ROUND 1:</span>
-  Stage 1: 4 models respond independently
+  Stage 1: 4 models respond to "Should govts ban social media for kids?"
        |
-  <span style="color:#eab308">CLAIM EXTRACTION</span>: Chairman decomposes into 101 canonical claims
-       |    A1: "Fusion is unlikely to be commercially competitive within 20 years"
-       |    B3: "ITER aims for first plasma in 2025-2027"  &larr; <span style="color:#eab308">CONTESTED</span>
-       |    D26: "Fusion is genuinely 20-30 years away"    &larr; <span style="color:#eab308">CONTESTED</span>
+  <span style="color:#eab308">CLAIM EXTRACTION</span>: Chairman decomposes into 81 canonical claims
+       |    A1: "Govts should not impose a total ban on social media for under 16"
+       |    A2: "Heavy social media use can be associated with anxiety and depression"
+       |    ...81 claims total
        |
-  Stage 2: All 4 models evaluate all 101 claims
-       |    B3: <span style="color:#eab308">ACCEPTABLE (50%)</span> | D26: <span style="color:#eab308">ACCEPTABLE (67%)</span>
-       |    99 others: <span style="color:#22c55e">STRONG</span>
+  Stage 2: All models evaluate all 81 claims &rarr; <span style="color:#22c55e">81/81 STRONG</span>
        |
-  Stage 3: Chairman synthesizes round 1
+  Stage 3: Chairman synthesizes Round 1
 
-<span style="color:#3b82f6;font-weight:bold">ROUND 2:</span>
-  <span style="color:#06b6d4">PER-MODEL FEEDBACK</span>:
-    DeepSeek: "Your B3 was ACCEPTABLE. Consider A1 from GPT (STRONG)."
-    Claude:   "Your D26 was ACCEPTABLE. Consider B1 from DeepSeek (STRONG)."
+<span style="color:#3b82f6;font-weight:bold">ROUND 2:</span> (each model gets personalized claim feedback)
+  Stage 1: Models elaborate &rarr; 96 claims (15 new ones added)
        |
-  Stage 1: Models revise (DeepSeek +47% longer, Claude drops D26)
+  <span style="color:#eab308">CLAIM EXTRACTION</span>: Chairman extracts 96 claims
        |
-  <span style="color:#eab308">CLAIM EXTRACTION</span>: Chairman extracts 95 claims from revised responses
+  Stage 2: Peers evaluate &rarr; <span style="color:#22c55e">94 STRONG</span>, <span style="color:#ef4444">2 FLAWED</span>
+       |    B4: "Blue light interferes with sleep" &rarr; <span style="color:#ef4444">FLAWED (33%)</span>
+       |    D7: "Effect sizes comparable to wearing glasses" &rarr; <span style="color:#ef4444">FLAWED (67%)</span>
        |
-  Stage 2: All claims now <span style="color:#22c55e">STRONG (100%)</span>
-       |
-  Stage 3: Chairman delivers FINAL VERDICT citing claim consensus
+  Stage 3: Chairman delivers FINAL VERDICT
+       |    Explicitly drops B4 and D7
+       |    "Claims Dropped or Flagged as Flawed" section in synthesis
     </div>
 </div>
 
-<!-- 9. Files -->
+<!-- 7. Test Suite -->
 <div class="section">
-    <h2>9. Files Changed (13 files, +1,191 / -48 lines)</h2>
+    <h2>7. Tests: 49 Passing <span class="badge badge-pass">ALL PASS</span></h2>
     <table>
-        <tr><th>File</th><th>Change</th></tr>
-        <tr><td><code>backend/debate.py</code></td><td>Orchestrator extended for claim/paragraph paths (+490 lines)</td></tr>
-        <tr><td><code>backend/json_repair.py</code></td><td><span class="badge badge-new">NEW</span> JSON extraction and repair</td></tr>
-        <tr><td><code>backend/prompts.py</code></td><td>7 new prompt templates for claim/paragraph modes</td></tr>
+        <tr><th>File</th><th>Tests</th><th>Covers</th></tr>
+        <tr><td><code>test_debate.py</code></td><td>23</td><td>convergence, paragraph segmentation, claim aggregation, cross-pollination</td></tr>
+        <tr><td><code>test_debate_integration.py</code></td><td>8</td><td>multi-round orchestration, convergence, prompt override</td></tr>
+        <tr><td><code>test_json_repair.py</code></td><td>8</td><td>JSON extraction, repair, edge cases</td></tr>
+        <tr><td><code>test_settings_backup.py</code></td><td>10</td><td>export, import, reset, auth</td></tr>
+    </table>
+</div>
+
+<!-- 8. Files -->
+<div class="section">
+    <h2>8. Files Changed (13 files, +1,191 lines)</h2>
+    <table>
+        <tr><th>File</th><th>What</th></tr>
+        <tr><td><code>backend/debate.py</code></td><td>Orchestrator: claim extraction, aggregation, cross-pollination, per-model prompts</td></tr>
+        <tr><td><code>backend/json_repair.py</code></td><td><span class="badge badge-new">NEW</span> JSON extraction and repair for LLM output</td></tr>
+        <tr><td><code>backend/prompts.py</code></td><td>7 new prompt templates (claim/paragraph Stage 1, 2, 3)</td></tr>
         <tr><td><code>backend/council.py</code></td><td>per_model_messages, Stage 2 prompt_override</td></tr>
-        <tr><td><code>backend/main.py</code></td><td>Accept paragraph/claim in validation</td></tr>
-        <tr><td><code>frontend/.../ClaimCards.jsx</code></td><td><span class="badge badge-new">NEW</span> Claim card UI with expandable verdicts</td></tr>
-        <tr><td><code>frontend/.../Stage2.jsx</code></td><td>Renders ClaimCards when data present</td></tr>
+        <tr><td><code>backend/main.py</code></td><td>Claim data in top-level metadata, paragraph/claim validation</td></tr>
+        <tr><td><code>frontend/.../ClaimCards.jsx</code></td><td><span class="badge badge-new">NEW</span> Claim card UI with expandable per-evaluator verdicts</td></tr>
+        <tr><td><code>frontend/.../Stage2.jsx</code></td><td>Renders ClaimCards when claim data present</td></tr>
         <tr><td><code>frontend/.../CouncilConfig.jsx</code></td><td>Critique mode radio buttons</td></tr>
-        <tr><td><code>backend/tests/test_debate.py</code></td><td>12 new tests for Phase 2</td></tr>
-        <tr><td><code>backend/tests/test_json_repair.py</code></td><td><span class="badge badge-new">NEW</span> 8 tests</td></tr>
     </table>
 </div>
 
 <div style="text-align:center; color:#475569; padding:20px; font-size:0.8rem;">
-    Evidence captured from live 2-round claim debate on 2026-05-18. Generated by Claude Code.
+    Evidence from live 2-round claim debate, 2026-05-18. Generated by Claude Code.
 </div>
-
 </div>
 </body>
 </html>
