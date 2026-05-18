@@ -71,28 +71,25 @@
     </div>
 </div>
 
-<!-- 1. ClaimCards UI -->
+<!-- 1. ClaimCards UI — Contested First -->
 <div class="section">
-    <h2>1. Claim-Level Evaluation: ClaimCards in Action</h2>
+    <h2>1. Claim-Level Evaluation: Contested Claims First</h2>
     <p>After models respond, the chairman decomposes all responses into canonical claims.
-       Peers then evaluate each claim as STRONG, WEAK, or FLAWED.</p>
+       Peers evaluate each claim. <strong>Contested claims are surfaced at the top.</strong>
+       Strong claims are collapsed.</p>
 
     <div class="screenshot">
-        <img src="screenshots/31-claim-cards-verdicts.png" alt="ClaimCards showing individual claims with STRONG verdicts">
+        <img src="screenshots/50-new-claim-summary.png" alt="Claim summary bar with contested claims prominent">
         <div class="screenshot-caption">
-            ClaimCards UI: each claim is a card with ID (A1, A2...), verdict badge (STRONG), agreement percentage (100%),
-            and the claim text. Green left border = STRONG. Cards are grouped by source model ("Response A: gpt-5.4-mini").
+            Summary bar: "2 contested | 94 strong | 96 total". B4 (FLAWED 33%) and D7 (FLAWED 67%) shown prominently
+            with per-evaluator verdicts expanded. 94 strong claims collapsed below. Raw evaluations hidden.
         </div>
     </div>
 
-    <div class="grid-2">
-        <div class="screenshot">
-            <img src="screenshots/22-claim-stage2-verdicts.png" alt="More claim cards scrolled down">
-            <div class="screenshot-caption">Claims continue across all responses. Each model's claims are grouped under their response label.</div>
-        </div>
-        <div class="screenshot">
-            <img src="screenshots/24-claim-leaderboard.png" alt="Claims and leaderboard">
-            <div class="screenshot-caption">Final claims before leaderboard. Note claims B23-B26 with STRONG verdicts and 100% agreement.</div>
+    <div class="screenshot">
+        <img src="screenshots/51-new-strong-collapsed.png" alt="Strong claims collapsed, leaderboard visible">
+        <div class="screenshot-caption">
+            94 Strong Claims collapsed behind toggle. Visual Leaderboard below. No wall of identical green cards.
         </div>
     </div>
 </div>
@@ -126,10 +123,10 @@
 
     <h3>The Chairman's Final Verdict Addresses Them Directly</h3>
     <div class="screenshot">
-        <img src="screenshots/35-verdict-end.png" alt="Chairman verdict addressing flawed claims">
+        <img src="screenshots/34-verdict-text.png" alt="Chairman FINAL VERDICT">
         <div class="screenshot-caption">
-            The chairman's final synthesis includes a "Claims Dropped or Flagged as Flawed" section
-            that explicitly addresses B4 and D7 with reasons for dropping them.
+            The chairman's Stage 3 synthesis: "FINAL VERDICT: Should Governments Ban Social Media for Children Under 16?"
+            with Procedural Summary referencing claim consensus.
         </div>
     </div>
 
@@ -145,17 +142,9 @@
     <h2>3. Rankings and Chairman's Final Verdict</h2>
 
     <div class="screenshot">
-        <img src="screenshots/32-leaderboard.png" alt="Visual leaderboard showing model rankings">
+        <img src="screenshots/52-new-leaderboard.png" alt="Visual leaderboard">
         <div class="screenshot-caption">
             Visual Leaderboard: #1 claude-opus-4-6 (1.67), #2 deepseek-v4-flash (1.67), #3 gpt-5.4-mini (2.67), #4 gemini (4.00).
-        </div>
-    </div>
-
-    <div class="screenshot">
-        <img src="screenshots/34-verdict-text.png" alt="Chairman's FINAL VERDICT">
-        <div class="screenshot-caption">
-            Stage 3: Chairman delivers "FINAL VERDICT: Should Governments Ban Social Media for Children Under 16?"
-            with a Procedural Summary referencing convergence on claims and model rankings.
         </div>
     </div>
 
@@ -268,28 +257,42 @@
     </table>
 </div>
 
-<!-- 9. Definitive Answer in the UI -->
+<!-- 9. Claim Evolution -->
 <div class="section">
-    <h2>9. The Definitive Answer: Complete in the UI</h2>
-    <p>The chairman's full synthesis renders in Stage 3 of the app. Here it is as the user sees it:</p>
+    <h2>9. Claim Evolution Across Rounds</h2>
+    <p>New component showing how claims changed between rounds, rendered after the chairman's verdict.</p>
 
     <div class="screenshot">
-        <img src="screenshots/40-definitive-answer-top.png" alt="Claims Adopted and start of Definitive Answer">
-        <div class="screenshot-caption">Claims Adopted Across Models (D18-D22, C22 migrated into consensus) and the start of "The Definitive Answer"</div>
-    </div>
-    <div class="screenshot">
-        <img src="screenshots/41-definitive-answer-policy.png" alt="Four grounds and policy framework">
-        <div class="screenshot-caption">The 4 grounds why a blanket ban fails + the 8-point superior policy framework</div>
-    </div>
-    <div class="screenshot">
-        <img src="screenshots/42-definitive-answer-end.png" alt="Policy framework, escalation clause, winner">
-        <div class="screenshot-caption">Full policy framework, escalation clause ("if platforms resist compliance..."), and Winner: Response D (Claude Opus)</div>
+        <img src="screenshots/53-new-claim-evolution.png" alt="Claim Evolution component showing round-by-round bars">
+        <div class="screenshot-caption">
+            Claim Evolution: Round 1 = 81 claims (all strong). Round 2 = 96 claims (94 strong, 2 contested).
+            B4 and D7 listed as contested with claim text. Appears after the Winner declaration.
+        </div>
     </div>
 </div>
 
-<!-- 10. Full Final Document -->
+<!-- 10. Definitive Answer in the UI -->
 <div class="section">
-    <h2>10. Full Chairman Verdict (Unedited)</h2>
+    <h2>10. The Definitive Answer: Complete in the UI</h2>
+    <p>The chairman's full synthesis renders in Stage 3. The complete answer with policy framework:</p>
+
+    <div class="screenshot">
+        <img src="screenshots/40-definitive-answer-top.png" alt="Claims Adopted and start of Definitive Answer">
+        <div class="screenshot-caption">Claims Adopted Across Models (D18-D22, C22) and "The Definitive Answer" thesis statement</div>
+    </div>
+    <div class="screenshot">
+        <img src="screenshots/41-definitive-answer-policy.png" alt="Four grounds and policy framework">
+        <div class="screenshot-caption">4 grounds why a blanket ban fails + the 8-point superior policy framework</div>
+    </div>
+    <div class="screenshot">
+        <img src="screenshots/42-definitive-answer-end.png" alt="Policy framework, escalation clause, winner">
+        <div class="screenshot-caption">Full policy framework, escalation clause, Winner: Response D (Claude Opus)</div>
+    </div>
+</div>
+
+<!-- 11. Full Final Document -->
+<div class="section">
+    <h2>11. Full Chairman Verdict (Unedited)</h2>
     <p>The complete 10,000-character synthesis. Also available as <a href="final-verdict.md" style="color:#3b82f6">final-verdict.md</a>.</p>
 
     <div style="background:#1a1a2e; border-radius:8px; padding:24px; margin:12px 0; font-size:0.9rem; line-height:1.7; max-height:none; overflow-y:visible;">
