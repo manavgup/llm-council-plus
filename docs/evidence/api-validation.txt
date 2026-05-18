@@ -1,0 +1,24 @@
+=== Phase 2 API Validation Evidence ===
+
+--- 1. Accept freeform mode ---
+    "critique_mode": "freeform",
+    "debate_rounds": 1,
+
+--- 2. Accept paragraph mode ---
+    "critique_mode": "paragraph",
+    "debate_rounds": 1,
+
+--- 3. Accept claim mode ---
+    "critique_mode": "claim",
+    "debate_rounds": 1,
+
+--- 4. Reject invalid mode ---
+{
+    "detail": "critique_mode must be freeform, paragraph, or claim"
+}
+
+--- 5. Full settings response ---
+    "critique_mode": "claim",
+    "debate_rounds": 1,
+    "auto_converge": true,
+    "convergence_threshold": 2

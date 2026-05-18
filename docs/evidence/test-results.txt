@@ -1,0 +1,60 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /Users/mg/mg-work/manav/work/ai-experiments/UofT_OC15_Summer2026/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mg/mg-work/manav/work/ai-experiments/llm-council-plus/.claude/worktrees/feat+iterative-debate-phase2
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, langsmith-0.7.36, respx-0.23.1, anyio-4.13.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 49 items
+
+backend/tests/test_debate.py::TestConvergence::test_stable_top_half PASSED [  2%]
+backend/tests/test_debate.py::TestConvergence::test_unstable PASSED      [  4%]
+backend/tests/test_debate.py::TestConvergence::test_empty PASSED         [  6%]
+backend/tests/test_debate.py::TestConvergence::test_single_model PASSED  [  8%]
+backend/tests/test_debate.py::TestConvergence::test_model_dropped PASSED [ 10%]
+backend/tests/test_debate.py::TestConvergence::test_no_common_models PASSED [ 12%]
+backend/tests/test_debate.py::TestConvergence::test_one_common_model PASSED [ 14%]
+backend/tests/test_debate.py::TestTruncateText::test_short PASSED        [ 16%]
+backend/tests/test_debate.py::TestTruncateText::test_long PASSED         [ 18%]
+backend/tests/test_debate.py::TestTruncateText::test_none PASSED         [ 20%]
+backend/tests/test_debate.py::TestTruncateText::test_empty PASSED        [ 22%]
+backend/tests/test_debate.py::TestParagraphSegmentation::test_basic_split PASSED [ 24%]
+backend/tests/test_debate.py::TestParagraphSegmentation::test_empty PASSED [ 26%]
+backend/tests/test_debate.py::TestParagraphSegmentation::test_single_paragraph PASSED [ 28%]
+backend/tests/test_debate.py::TestParagraphSegmentation::test_strips_whitespace PASSED [ 30%]
+backend/tests/test_debate.py::TestParagraphSegmentation::test_numbered_format PASSED [ 32%]
+backend/tests/test_debate.py::TestParagraphSegmentation::test_numbered_format_empty PASSED [ 34%]
+backend/tests/test_debate.py::TestClaimAggregation::test_majority_verdict PASSED [ 36%]
+backend/tests/test_debate.py::TestClaimAggregation::test_empty_results PASSED [ 38%]
+backend/tests/test_debate.py::TestClaimAggregation::test_missing_claim_verdicts PASSED [ 40%]
+backend/tests/test_debate.py::TestCrossPollination::test_selects_strong_from_others PASSED [ 42%]
+backend/tests/test_debate.py::TestCrossPollination::test_excludes_own_claims PASSED [ 44%]
+backend/tests/test_debate.py::TestCrossPollination::test_max_claims_limit PASSED [ 46%]
+backend/tests/test_debate_integration.py::test_two_rounds_yields_correct_events PASSED [ 48%]
+backend/tests/test_debate_integration.py::test_chat_only_forces_single_round PASSED [ 51%]
+backend/tests/test_debate_integration.py::test_convergence_stops_early PASSED [ 53%]
+backend/tests/test_debate_integration.py::test_all_models_fail_stops PASSED [ 55%]
+backend/tests/test_debate_integration.py::test_chat_ranking_with_rounds PASSED [ 57%]
+backend/tests/test_debate_integration.py::test_partial_model_failure_round2 PASSED [ 59%]
+backend/tests/test_debate_integration.py::test_debate_rounds_param_overrides_settings PASSED [ 61%]
+backend/tests/test_debate_integration.py::test_final_round_uses_prompt_override PASSED [ 63%]
+backend/tests/test_json_repair.py::test_extract_json_from_markdown PASSED [ 65%]
+backend/tests/test_json_repair.py::test_extract_json_fallback_braces PASSED [ 67%]
+backend/tests/test_json_repair.py::test_repair_trailing_comma PASSED     [ 69%]
+backend/tests/test_json_repair.py::test_repair_returns_none_on_garbage PASSED [ 71%]
+backend/tests/test_json_repair.py::test_extract_nested_json PASSED       [ 73%]
+backend/tests/test_json_repair.py::test_extract_json_array PASSED        [ 75%]
+backend/tests/test_json_repair.py::test_extract_empty_text PASSED        [ 77%]
+backend/tests/test_json_repair.py::test_repair_empty_text PASSED         [ 79%]
+backend/tests/test_settings_backup.py::test_export_returns_json_download PASSED [ 81%]
+backend/tests/test_settings_backup.py::test_export_includes_api_key_values PASSED [ 83%]
+backend/tests/test_settings_backup.py::test_export_rejects_remote_client_without_admin_token PASSED [ 85%]
+backend/tests/test_settings_backup.py::test_export_rejects_proxied_remote_client_without_admin_token PASSED [ 87%]
+backend/tests/test_settings_backup.py::test_export_accepts_remote_client_with_admin_token PASSED [ 89%]
+backend/tests/test_settings_backup.py::test_import_valid_settings PASSED [ 91%]
+backend/tests/test_settings_backup.py::test_import_invalid_json PASSED   [ 93%]
+backend/tests/test_settings_backup.py::test_import_invalid_settings PASSED [ 95%]
+backend/tests/test_settings_backup.py::test_reset_returns_success PASSED [ 97%]
+backend/tests/test_settings_backup.py::test_reset_saves_defaults PASSED  [100%]
+
+============================== 49 passed in 4.14s ==============================
