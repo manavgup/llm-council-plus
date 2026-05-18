@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Skeleton from './common/Skeleton';
 import ReactMarkdown from 'react-markdown';
 import { getModelVisuals, getShortModelName } from '../utils/modelHelpers';
+import { ClaimCardWithVerdicts } from './ClaimCards';
 import './Stage2.css';
 import StageTimer from './StageTimer';
 
@@ -23,7 +24,7 @@ function hexToRgb(hex) {
     return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
 }
 
-export default function Stage2({ rankings, labelToModel, aggregateRankings, startTime, endTime }) {
+export default function Stage2({ rankings, labelToModel, aggregateRankings, startTime, endTime, canonicalClaims, aggregateClaimVerdicts }) {
     const [activeTab, setActiveTab] = useState(0);
 
     // Reset activeTab if it becomes out of bounds (e.g., during streaming)
@@ -198,6 +199,15 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings, star
                     </>
                 )}
             </div>
+
+            {canonicalClaims && aggregateClaimVerdicts && (
+                <ClaimCardWithVerdicts
+                    claims={canonicalClaims}
+                    aggregatedVerdicts={aggregateClaimVerdicts}
+                    labelToModel={labelToModel}
+                    stage2Results={rankings}
+                />
+            )}
 
             {aggregateRankings && aggregateRankings.length > 0 && (
                 <div className="aggregate-rankings">

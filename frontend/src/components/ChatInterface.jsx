@@ -207,6 +207,8 @@ export default function ChatInterface({
                                                 aggregateRankings={msg.metadata?.aggregate_rankings}
                                                 startTime={msg.timers?.stage2Start}
                                                 endTime={msg.timers?.stage2End}
+                                                canonicalClaims={msg.metadata?.canonical_claims}
+                                                aggregateClaimVerdicts={msg.metadata?.aggregate_claim_verdicts}
                                             />
                                         )}
 

@@ -1,0 +1,168 @@
+.claim-cards {
+  margin-top: 16px;
+}
+
+.claim-cards h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.claim-cards-description {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 12px 0;
+}
+
+.claim-group {
+  margin-bottom: 16px;
+}
+
+.claim-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+.claim-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.claim-group-model {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.claim-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.claim-card {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.claim-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.claim-card.strong {
+  border-left: 3px solid #22c55e;
+}
+
+.claim-card.weak {
+  border-left: 3px solid #eab308;
+}
+
+.claim-card.flawed {
+  border-left: 3px solid #ef4444;
+}
+
+.claim-card.unknown {
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.claim-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.claim-id {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: monospace;
+}
+
+.claim-source {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.claim-verdict {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.claim-verdict.strong {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.claim-verdict.weak {
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.1);
+}
+
+.claim-verdict.flawed {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.claim-agreement {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: auto;
+}
+
+.claim-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.claim-evaluators {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evaluator-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.ev-model {
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 80px;
+  font-size: 11px;
+}
+
+.ev-verdict {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.ev-verdict.strong { color: #22c55e; }
+.ev-verdict.weak { color: #eab308; }
+.ev-verdict.flawed { color: #ef4444; }
+
+.ev-reason {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+}
