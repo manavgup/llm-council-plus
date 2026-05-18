@@ -81,7 +81,7 @@ async def query_models_parallel(models: List[str], messages: List[Dict[str, str]
     return dict(results)
 
 
-async def stage1_collect_responses(user_query: str, search_context: str = "", request: Any = None, models_override: "List[str] | None" = None, history: "List[Dict[str, str]] | None" = None, messages_override: "List[Dict[str, str]] | None" = None) -> Any:
+async def stage1_collect_responses(user_query: str, search_context: str = "", request: Any = None, models_override: "List[str] | None" = None, history: "List[Dict[str, str]] | None" = None, messages_override: "List[Dict[str, str]] | None" = None, per_model_messages: "Dict[str, List[Dict[str, str]]] | None" = None) -> Any:
     """
     Stage 1: Collect individual responses from all council models.
 
@@ -133,7 +133,9 @@ async def stage1_collect_responses(user_query: str, search_context: str = "", re
 
     async def _query_safe(m: str):
         try:
-            return m, await query_model(m, messages, temperature=council_temp)
+            # Use per-model messages if available for this model
+            model_msgs = per_model_messages.get(m, messages) if per_model_messages else messages
+            return m, await query_model(m, model_msgs, temperature=council_temp)
         except Exception as e:
             return m, {"error": True, "error_message": str(e)}
 

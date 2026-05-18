@@ -67,6 +67,113 @@ def _build_rankings_summary(
     return "\n".join(lines)
 
 
+def pre_segment_paragraphs(response_text: str) -> List[str]:
+    """Split response into paragraphs on double-newlines. Returns list of paragraph strings."""
+    if not response_text:
+        return []
+    paragraphs = [p.strip() for p in response_text.split("\n\n") if p.strip()]
+    return paragraphs
+
+
+def format_numbered_paragraphs(response_text: str) -> str:
+    """Format response with [Para N] markers for stable evaluator references."""
+    paragraphs = pre_segment_paragraphs(response_text)
+    return "\n\n".join(f"[Para {i+1}] {p}" for i, p in enumerate(paragraphs))
+
+
+async def extract_canonical_claims(
+    responses_text: str,
+    chairman_model: Optional[str] = None,
+) -> Optional[Dict[str, List[Dict[str, str]]]]:
+    """Extract canonical claims via single LLM call using the chairman model.
+
+    Uses the chairman to avoid bias (council models should not write their own exam).
+    Falls back to free-form mode if extraction fails or times out (30s).
+    Returns {label: [{id, claim}]} or None on failure.
+    """
+    from .prompts import CLAIM_EXTRACTION_PROMPT
+    from .council import query_model
+    from .json_repair import extract_json_block
+
+    prompt = CLAIM_EXTRACTION_PROMPT.format(responses_text=responses_text)
+    messages = [{"role": "user", "content": prompt}]
+
+    extractor = chairman_model or get_chairman_model()
+    try:
+        response = await asyncio.wait_for(
+            query_model(extractor, messages, temperature=0.2),
+            timeout=30.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Claim extraction timed out after 30s, falling back to free-form")
+        return None
+
+    if not response or response.get("error"):
+        return None
+
+    content = response.get("content", "")
+    return extract_json_block(content)
+
+
+def aggregate_claim_verdicts(
+    stage2_results: List[Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Aggregate per-claim verdicts across evaluators.
+
+    Returns {claim_id: {majority_verdict, agreement, verdicts}}.
+    """
+    from collections import Counter
+
+    all_verdicts: Dict[str, List[str]] = {}
+
+    for result in stage2_results:
+        claim_verdicts = result.get("claim_verdicts", {})
+        for claim_id, v in claim_verdicts.items():
+            all_verdicts.setdefault(claim_id, []).append(v.get("verdict", ""))
+
+    aggregated = {}
+    for claim_id, verdicts in all_verdicts.items():
+        counter = Counter(verdicts)
+        majority = counter.most_common(1)[0][0] if counter else "unknown"
+        total = len(verdicts)
+        agreement = counter[majority] / total if total > 0 else 0
+        aggregated[claim_id] = {
+            "majority_verdict": majority,
+            "agreement": round(agreement, 2),
+            "verdicts": dict(counter),
+        }
+
+    return aggregated
+
+
+def select_top_claims_for_model(
+    canonical_claims: Dict[str, List[Dict[str, str]]],
+    aggregated_verdicts: Dict[str, Dict[str, Any]],
+    target_model: str,
+    label_to_model: Dict[str, str],
+    max_claims: int = 5,
+) -> List[Dict[str, Any]]:
+    """Select top-rated claims from OTHER models for cross-pollination."""
+    model_to_label = {v: k for k, v in label_to_model.items()}
+    target_label = model_to_label.get(target_model)
+
+    candidates = []
+    for label, claims in canonical_claims.items():
+        if label == target_label:
+            continue
+        for claim in claims:
+            cid = claim["id"]
+            verdict_info = aggregated_verdicts.get(cid, {})
+            if verdict_info.get("majority_verdict") == "strong":
+                candidates.append({
+                    **claim,
+                    "agreement": verdict_info.get("agreement", 0),
+                    "source_label": label,
+                })
+
+    candidates.sort(key=lambda x: x["agreement"], reverse=True)
+    return candidates[:max_claims]
+
 
 async def run_iterative_debate(
     user_query: str,

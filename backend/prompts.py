@@ -117,3 +117,119 @@ This final round's peer rankings:
 {stage2_text}
 
 Deliver the definitive answer. Explain how the deliberation evolved across rounds and why the final position is strongest. Declare the winning perspective."""
+
+# --- Phase 2: Claim & Paragraph Critique Mode Prompts ---
+
+CLAIM_EXTRACTION_PROMPT = """Decompose each response into individual claims (specific, falsifiable statements). Each claim should be one clear assertion.
+
+{responses_text}
+
+Respond with ONLY valid JSON (no other text):
+```json
+{{
+  "Response A": [
+    {{"id": "A1", "claim": "specific falsifiable statement"}},
+    {{"id": "A2", "claim": "another statement"}}
+  ],
+  "Response B": [
+    {{"id": "B1", "claim": "statement"}}
+  ]
+}}
+```"""
+
+STAGE2_PARAGRAPH_PROMPT = """You are evaluating responses to: {user_query}
+
+{search_context_block}
+{responses_text}
+
+Paragraphs are pre-numbered as [Para 1], [Para 2], etc. Rate each: STRONG, WEAK, or FLAWED.
+
+Respond with valid JSON followed by your ranking:
+
+```json
+[
+  {{"response": "Response A", "paragraph": 1, "verdict": "strong", "comment": "reason"}},
+  {{"response": "Response A", "paragraph": 2, "verdict": "flawed", "comment": "reason"}}
+]
+```
+
+FINAL RANKING:
+1. Response A
+2. Response B"""
+
+STAGE2_CLAIM_PROMPT = """You are evaluating responses to: {user_query}
+
+{search_context_block}
+{responses_text}
+
+These canonical claims have been extracted. Rate each one:
+{canonical_claims_text}
+
+Respond with valid JSON followed by your ranking:
+
+```json
+{{
+  "A1": {{"verdict": "strong", "reason": "one sentence"}},
+  "A2": {{"verdict": "flawed", "reason": "one sentence"}}
+}}
+```
+
+FINAL RANKING:
+1. Response A
+2. Response B"""
+
+STAGE1_ROUND_N_CLAIM_PROMPT = """You are refining your answer in Round {round_number} of a multi-round deliberation.
+
+Original question: {user_query}
+{search_context_block}
+
+YOUR PREVIOUS RESPONSE had these claims evaluated by peers:
+{own_claims_with_critiques}
+
+TOP-RATED CLAIMS FROM OTHER MODELS (for your consideration):
+{top_claims_from_others}
+
+Your task:
+- Fix or drop claims rated FLAWED
+- Strengthen claims rated WEAK
+- Keep claims rated STRONG
+- Consider incorporating top-rated claims from others if they improve your argument
+- You may add new claims not previously considered
+
+Provide your revised, improved response."""
+
+STAGE1_ROUND_N_PARAGRAPH_PROMPT = """You are refining your answer in Round {round_number} of a multi-round deliberation.
+
+Original question: {user_query}
+{search_context_block}
+
+YOUR PREVIOUS RESPONSE had these paragraphs evaluated by peers:
+{own_paragraphs_with_critiques}
+
+TOP-RATED PARAGRAPHS FROM OTHER MODELS (for your consideration):
+{top_paragraphs_from_others}
+
+Your task:
+- Rewrite paragraphs rated FLAWED
+- Strengthen paragraphs rated WEAK
+- Keep paragraphs rated STRONG
+- Consider incorporating strong points from others
+
+Provide your revised, improved response."""
+
+STAGE3_FINAL_CLAIM_PROMPT = """You are the Chairman delivering the FINAL verdict after {total_rounds} rounds of deliberation.
+
+Original question: {user_query}
+
+{search_context_block}
+
+Claim evolution across rounds:
+{claim_evolution_summary}
+
+Final round responses:
+{stage1_text}
+
+Final round rankings:
+{stage2_text}
+
+Deliver the definitive answer. Explain which claims survived scrutiny, which were dropped, and which were adopted across models. Declare the winner."""
