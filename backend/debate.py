@@ -88,7 +88,7 @@ async def extract_canonical_claims(
     """Extract canonical claims via single LLM call using the chairman model.
 
     Uses the chairman to avoid bias (council models should not write their own exam).
-    Falls back to free-form mode if extraction fails or times out (30s).
+    Falls back to free-form mode if extraction fails or times out (90s).
     Returns {label: [{id, claim}]} or None on failure.
     """
     from .prompts import CLAIM_EXTRACTION_PROMPT
@@ -102,10 +102,10 @@ async def extract_canonical_claims(
     try:
         response = await asyncio.wait_for(
             query_model(extractor, messages, temperature=0.2),
-            timeout=30.0,
+            timeout=90.0,
         )
     except asyncio.TimeoutError:
-        logger.warning("Claim extraction timed out after 30s, falling back to free-form")
+        logger.warning("Claim extraction timed out after 90s, falling back to free-form")
         return None
 
     if not response or response.get("error"):

@@ -3,474 +3,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phase 2 Evidence: Claim &amp; Paragraph Critique Modes</title>
+    <title>Phase 2 Evidence: Claim-Level Debate in Action</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
-            line-height: 1.6;
-            padding: 40px 20px;
+            background: #0f172a; color: #e2e8f0; line-height: 1.6; padding: 40px 20px;
         }
         .container { max-width: 1100px; margin: 0 auto; }
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 8px;
+        h1 { font-size: 2rem; margin-bottom: 8px;
             background: linear-gradient(135deg, #3b82f6, #06b6d4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .subtitle {
-            color: #94a3b8;
-            font-size: 1rem;
-            margin-bottom: 32px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: #94a3b8; font-size: 1rem; margin-bottom: 32px; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
         .badge-pass { background: rgba(34,197,94,0.15); color: #22c55e; }
         .badge-new { background: rgba(59,130,246,0.15); color: #3b82f6; }
-        .badge-info { background: rgba(234,179,8,0.15); color: #eab308; }
-
-        .section {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .section h2 {
-            font-size: 1.25rem;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .section h3 {
-            font-size: 1rem;
-            color: #94a3b8;
-            margin: 16px 0 8px 0;
-        }
-
-        .screenshot {
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-            margin: 12px 0;
-        }
-        .screenshot img {
-            width: 100%;
-            display: block;
-        }
-        .screenshot-caption {
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.3);
-            font-size: 0.8rem;
-            color: #94a3b8;
-        }
-
-        .test-results {
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 16px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 0.8rem;
-            line-height: 1.5;
-            overflow-x: auto;
-            white-space: pre;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .test-pass { color: #22c55e; }
-        .test-header { color: #3b82f6; }
-
-        .api-result {
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin: 8px 0;
-            font-family: monospace;
-            font-size: 0.85rem;
-        }
-        .api-ok { border-left: 3px solid #22c55e; }
-        .api-err { border-left: 3px solid #ef4444; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 12px 0;
-        }
-        th, td {
-            text-align: left;
-            padding: 8px 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        th { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        td { font-size: 0.9rem; }
-        td code {
-            background: rgba(59,130,246,0.1);
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 0.8rem;
-        }
-
+        .badge-warn { background: rgba(234,179,8,0.15); color: #eab308; }
+        .badge-fix { background: rgba(168,85,247,0.15); color: #a855f7; }
+        .section { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .section h2 { font-size: 1.25rem; margin-bottom: 16px; }
+        .section h3 { font-size: 1rem; color: #94a3b8; margin: 16px 0 8px 0; }
+        .screenshot { border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; margin: 12px 0; }
+        .screenshot img { width: 100%; display: block; }
+        .screenshot-caption { padding: 8px 12px; background: rgba(0,0,0,0.3); font-size: 0.8rem; color: #94a3b8; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
-
-        .stat-card {
-            background: rgba(59,130,246,0.05);
-            border: 1px solid rgba(59,130,246,0.15);
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-        }
+        .stat-card { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.15);
+            border-radius: 8px; padding: 16px; text-align: center; }
         .stat-number { font-size: 2rem; font-weight: 700; color: #3b82f6; }
         .stat-label { font-size: 0.8rem; color: #94a3b8; }
-
-        .file-list { list-style: none; padding: 0; }
-        .file-list li {
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .file-list .action-new { color: #22c55e; font-weight: 600; }
-        .file-list .action-mod { color: #eab308; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        th { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        td { font-size: 0.9rem; }
+        td code { background: rgba(59,130,246,0.1); padding: 1px 6px; border-radius: 3px; font-size: 0.8rem; }
+        .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; }
+        .claim-row { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+        .claim-id { font-family: monospace; font-weight: 700; color: #94a3b8; min-width: 32px; }
+        .claim-text { color: #e2e8f0; font-style: italic; }
+        .verdict-strong { color: #22c55e; font-weight: 700; }
+        .verdict-weak { color: #eab308; font-weight: 700; }
+        .verdict-flawed { color: #ef4444; font-weight: 700; }
+        .verdict-acceptable { color: #eab308; font-weight: 700; }
+        .arrow { color: #3b82f6; font-size: 1.5rem; text-align: center; padding: 8px; }
+        .highlight-box { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 8px; padding: 16px; margin: 12px 0; }
+        .highlight-box.green { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); }
+        .quote { border-left: 3px solid #3b82f6; padding-left: 16px; margin: 12px 0;
+            color: #94a3b8; font-style: italic; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Phase 2 Evidence: Claim &amp; Paragraph Critique Modes</h1>
-        <p class="subtitle">
-            LLM Council Plus &mdash; Iterative Debate Phase 2 &mdash;
-            Branch: <code>feat/iterative-debate-phase2</code> &mdash;
-            Date: 2026-05-18 &mdash;
-            PR: <a href="https://github.com/jacob-bd/llm-council-plus/pull/11" style="color:#3b82f6">#11</a>
+<div class="container">
+
+<h1>Phase 2 Evidence: Claim-Level Debate in Action</h1>
+<p class="subtitle">
+    Live 2-round claim-mode debate with 4 models, captured 2026-05-18.
+    Branch: <code>feat/iterative-debate-phase2</code> |
+    PR: <a href="https://github.com/manavgup/llm-council-plus/pull/11" style="color:#3b82f6">#11</a>
+</p>
+
+<!-- Hero Stats -->
+<div class="grid-2" style="margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-number">101 &rarr; 95</div>
+        <div class="stat-label">Claims Extracted (R1 &rarr; R2)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">98% &rarr; 100%</div>
+        <div class="stat-label">Claims Rated STRONG</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">2 &rarr; 0</div>
+        <div class="stat-label">Non-Strong Claims Fixed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">4 models</div>
+        <div class="stat-label">GPT-5.4, Opus, DeepSeek, Gemini</div>
+    </div>
+</div>
+
+<!-- 1. The Question -->
+<div class="section">
+    <h2>1. The Debate Question</h2>
+    <div class="highlight-box" style="font-size: 1.1rem;">
+        "Is nuclear fusion a viable energy source within the next 20 years?
+        Consider technical feasibility, economic factors, and political will."
+    </div>
+    <p style="margin-top: 8px; color: #94a3b8;">
+        <strong>Config:</strong> Claim-level critique mode, 2 rounds, 4 council models
+        (gpt-5.4-mini, claude-opus-4-6, deepseek-v4-flash, gemini-2.5-flash-lite),
+        chairman: claude-sonnet-4-6
+    </p>
+</div>
+
+<!-- 2. Round 1: Claim Extraction -->
+<div class="section">
+    <h2>2. Round 1: Claims Extracted &amp; Evaluated</h2>
+    <p>After Stage 1 responses, the chairman decomposed all 4 responses into <strong>101 canonical claims</strong>.
+       Each claim was then evaluated by all peers as STRONG, WEAK, or FLAWED.</p>
+
+    <h3>Two claims did NOT get unanimous STRONG in Round 1:</h3>
+    <div class="highlight-box" style="border-color: rgba(234,179,8,0.3); background: rgba(234,179,8,0.05);">
+        <div class="claim-row">
+            <span class="claim-id">B3</span>
+            <span class="verdict-acceptable">ACCEPTABLE (50%)</span>
+            <span class="claim-text">"ITER aims for first plasma in 2025-2027"</span>
+        </div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
+            (DeepSeek's claim. Date was contested by peers as potentially outdated given ITER delays.)
         </p>
-
-        <!-- Stats -->
-        <div class="grid-2" style="margin-bottom: 24px;">
-            <div class="stat-card">
-                <div class="stat-number">49</div>
-                <div class="stat-label">Tests Passing</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">3</div>
-                <div class="stat-label">Critique Modes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">13</div>
-                <div class="stat-label">Files Changed</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">+1,191</div>
-                <div class="stat-label">Lines Added</div>
-            </div>
+        <div class="claim-row" style="margin-top: 8px;">
+            <span class="claim-id">D26</span>
+            <span class="verdict-acceptable">ACCEPTABLE (67%)</span>
+            <span class="claim-text">"Fusion is now genuinely 20 to 30 years from demonstration and 30 to 40 years from meaningful deployment"</span>
         </div>
-
-        <!-- 1. Settings UI -->
-        <div class="section">
-            <h2>1. Settings UI: Critique Mode Selection</h2>
-            <p>Three mutually exclusive critique modes available in Settings &rarr; Council Config &rarr; Debate Settings.</p>
-
-            <h3>Free-form Mode (default, Phase 1 behavior)</h3>
-            <div class="screenshot">
-                <img src="screenshots/01-settings-critique-mode.png" alt="Settings showing critique mode radio buttons">
-                <div class="screenshot-caption">Debate Settings section showing all three radio buttons: Free-form (selected), Paragraph-level, Claim-level</div>
-            </div>
-
-            <div class="grid-2">
-                <div>
-                    <h3>Claim-level Mode Selected</h3>
-                    <div class="screenshot">
-                        <img src="screenshots/02-settings-claim-mode-selected.png" alt="Claim mode selected with hint text">
-                        <div class="screenshot-caption">Claim-level selected. Shows hint: "Claim-level adds ~1 extra API call per round for extraction."</div>
-                    </div>
-                </div>
-                <div>
-                    <h3>Paragraph-level Mode Selected</h3>
-                    <div class="screenshot">
-                        <img src="screenshots/03-settings-paragraph-mode.png" alt="Paragraph mode selected">
-                        <div class="screenshot-caption">Paragraph-level selected. Shows hint about custom Stage 2 prompt only applying in Free-form mode.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 2. API Validation -->
-        <div class="section">
-            <h2>2. API Validation: Critique Mode Accepted/Rejected</h2>
-            <p>The backend validates <code>critique_mode</code> on PUT /api/settings and returns 400 for invalid values.</p>
-
-            <div class="api-result api-ok">
-                <strong>PUT /api/settings</strong> {"critique_mode": "freeform"} &rarr; <span class="badge badge-pass">200 OK</span> critique_mode=freeform
-            </div>
-            <div class="api-result api-ok">
-                <strong>PUT /api/settings</strong> {"critique_mode": "paragraph"} &rarr; <span class="badge badge-pass">200 OK</span> critique_mode=paragraph
-            </div>
-            <div class="api-result api-ok">
-                <strong>PUT /api/settings</strong> {"critique_mode": "claim"} &rarr; <span class="badge badge-pass">200 OK</span> critique_mode=claim
-            </div>
-            <div class="api-result api-err">
-                <strong>PUT /api/settings</strong> {"critique_mode": "invalid"} &rarr; <span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">400 Bad Request</span> "critique_mode must be freeform, paragraph, or claim"
-            </div>
-
-            <h3>Settings Response Fields</h3>
-            <div class="api-result api-ok">
-                <strong>GET /api/settings</strong> includes: critique_mode, debate_rounds, auto_converge, convergence_threshold
-            </div>
-        </div>
-
-        <!-- 3. Test Results -->
-        <div class="section">
-            <h2>3. Test Results: 49 Tests Passing <span class="badge badge-pass">ALL PASS</span></h2>
-            <p>20 new tests added for Phase 2 (paragraph, claim aggregation, cross-pollination, JSON repair).</p>
-
-            <table>
-                <thead>
-                    <tr><th>Test File</th><th>Tests</th><th>Coverage</th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>test_debate.py</code></td>
-                        <td>23 <span class="badge badge-new">+12 new</span></td>
-                        <td>convergence, truncation, paragraph segmentation, claim aggregation, cross-pollination</td>
-                    </tr>
-                    <tr>
-                        <td><code>test_debate_integration.py</code></td>
-                        <td>8</td>
-                        <td>multi-round orchestration, convergence, prompt override</td>
-                    </tr>
-                    <tr>
-                        <td><code>test_json_repair.py</code></td>
-                        <td>8 <span class="badge badge-new">new file</span></td>
-                        <td>JSON extraction, repair, markdown fence, arrays, edge cases</td>
-                    </tr>
-                    <tr>
-                        <td><code>test_settings_backup.py</code></td>
-                        <td>10</td>
-                        <td>export, import, reset, auth</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <details>
-                <summary style="cursor:pointer; color:#3b82f6; margin: 12px 0;">Show full test output</summary>
-                <div class="test-results" id="test-output"></div>
-            </details>
-        </div>
-
-        <!-- 4. Architecture -->
-        <div class="section">
-            <h2>4. Architecture: Phase 2 Data Flow</h2>
-            <p>How claim-level critique mode works across the 3-stage pipeline:</p>
-
-            <div style="background:#1a1a2e; border-radius:8px; padding:20px; margin:12px 0; font-family:monospace; font-size:0.8rem; line-height:1.8;">
-<span style="color:#3b82f6">Round 1:</span>
-  Stage 1: Models respond independently (same as freeform)
-       |
-  <span style="color:#eab308">Claim Extraction</span>: Chairman decomposes responses into canonical claims
-       |    e.g. A1: "Quantum computers use qubits in superposition"
-       |         A2: "Current quantum computers have 10M qubits"
-       |         B1: "Error correction is the primary bottleneck"
-       |
-  Stage 2: Peers evaluate <span style="color:#22c55e">canonical claims</span> (not free-text)
-       |    A1: STRONG (3/4 agree) | A2: FLAWED (4/4 agree) | B1: STRONG
-       |
-  Stage 3: Chairman synthesizes (unchanged)
-
-<span style="color:#3b82f6">Round 2:</span>
-  <span style="color:#06b6d4">Per-model prompts</span>:
-    Model A sees: "Your A2 was FLAWED. Consider B1 from Model B (STRONG)."
-    Model B sees: "Your B1 was STRONG. Consider A1 from Model A (STRONG)."
-       |
-  Stage 1: Models revise with <span style="color:#22c55e">targeted feedback</span>
-       |
-  [Repeat Stage 2 + 3, check convergence]
-            </div>
-        </div>
-
-        <!-- 5. Files Changed -->
-        <div class="section">
-            <h2>5. Files Changed (13 files, +1,191 / -48)</h2>
-
-            <h3>Backend (7 files)</h3>
-            <ul class="file-list">
-                <li><span class="action-mod">MOD</span> <code>backend/debate.py</code> &mdash; orchestrator extended for claim/paragraph paths (+490 lines)</li>
-                <li><span class="action-mod">MOD</span> <code>backend/council.py</code> &mdash; per_model_messages, Stage 2 prompt_override</li>
-                <li><span class="action-new">NEW</span> <code>backend/json_repair.py</code> &mdash; JSON extraction and repair for LLM output</li>
-                <li><span class="action-mod">MOD</span> <code>backend/prompts.py</code> &mdash; 7 new prompt templates (+116 lines)</li>
-                <li><span class="action-mod">MOD</span> <code>backend/main.py</code> &mdash; accept paragraph/claim in validation</li>
-                <li><span class="action-mod">MOD</span> <code>backend/tests/test_debate.py</code> &mdash; 12 new tests</li>
-                <li><span class="action-new">NEW</span> <code>backend/tests/test_json_repair.py</code> &mdash; 8 tests</li>
-            </ul>
-
-            <h3>Frontend (6 files)</h3>
-            <ul class="file-list">
-                <li><span class="action-new">NEW</span> <code>frontend/src/components/ClaimCards.jsx</code> &mdash; claim card UI with expandable verdicts</li>
-                <li><span class="action-new">NEW</span> <code>frontend/src/components/ClaimCards.css</code> &mdash; glassmorphic styling</li>
-                <li><span class="action-mod">MOD</span> <code>frontend/src/components/Stage2.jsx</code> &mdash; renders ClaimCards when data present</li>
-                <li><span class="action-mod">MOD</span> <code>frontend/src/components/ChatInterface.jsx</code> &mdash; passes claim metadata through</li>
-                <li><span class="action-mod">MOD</span> <code>frontend/src/components/Settings.jsx</code> &mdash; critiqueMode state</li>
-                <li><span class="action-mod">MOD</span> <code>frontend/src/components/settings/CouncilConfig.jsx</code> &mdash; critique mode radio UI</li>
-            </ul>
-        </div>
-
-        <!-- 6. Commits -->
-        <div class="section">
-            <h2>6. Commit History</h2>
-            <table>
-                <thead>
-                    <tr><th>Commit</th><th>Message</th></tr>
-                </thead>
-                <tbody id="commits"></tbody>
-            </table>
-        </div>
-
-        <!-- 7. New Features Summary -->
-        <div class="section">
-            <h2>7. What Phase 2 Adds</h2>
-            <table>
-                <thead>
-                    <tr><th>Feature</th><th>Description</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Claim Extraction</td>
-                        <td>Chairman decomposes responses into canonical falsifiable claims</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>Claim Evaluation</td>
-                        <td>Peers rate each canonical claim: strong/weak/flawed with reasons</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>Cross-Pollination</td>
-                        <td>Models see top-rated claims from other models in round N+1</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>Per-Model Prompts</td>
-                        <td>Each model gets personalized revision prompt with own critiques</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>Paragraph Mode</td>
-                        <td>Pre-numbered [Para N] markers for stable paragraph evaluation</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>JSON Repair</td>
-                        <td>Extraction and repair of malformed LLM JSON output</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>ClaimCards UI</td>
-                        <td>Expandable cards grouped by model, color-coded verdicts</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>Settings UI</td>
-                        <td>Radio buttons for critique mode with cost hints</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                    <tr>
-                        <td>Graceful Degradation</td>
-                        <td>Claim extraction timeout/failure falls back to freeform</td>
-                        <td><span class="badge badge-pass">Done</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div style="text-align:center; color:#475569; padding:20px; font-size:0.8rem;">
-            Generated by Claude Code &mdash; 2026-05-18
-        </div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
+            (Claude's claim. Peers saw it as vague "always 30 years away" framing rather than a falsifiable statement.)
+        </p>
     </div>
 
-    <script>
-        // Populate test output
-        const testOutput = `backend/tests/test_debate.py::TestConvergence::test_stable_top_half PASSED
-backend/tests/test_debate.py::TestConvergence::test_unstable PASSED
-backend/tests/test_debate.py::TestConvergence::test_empty PASSED
-backend/tests/test_debate.py::TestConvergence::test_single_model PASSED
-backend/tests/test_debate.py::TestConvergence::test_model_dropped PASSED
-backend/tests/test_debate.py::TestConvergence::test_no_common_models PASSED
-backend/tests/test_debate.py::TestConvergence::test_one_common_model PASSED
-backend/tests/test_debate.py::TestTruncateText::test_short PASSED
-backend/tests/test_debate.py::TestTruncateText::test_long PASSED
-backend/tests/test_debate.py::TestTruncateText::test_none PASSED
-backend/tests/test_debate.py::TestTruncateText::test_empty PASSED
-backend/tests/test_debate.py::TestParagraphSegmentation::test_basic_split PASSED
-backend/tests/test_debate.py::TestParagraphSegmentation::test_empty PASSED
-backend/tests/test_debate.py::TestParagraphSegmentation::test_single_paragraph PASSED
-backend/tests/test_debate.py::TestParagraphSegmentation::test_strips_whitespace PASSED
-backend/tests/test_debate.py::TestParagraphSegmentation::test_numbered_format PASSED
-backend/tests/test_debate.py::TestParagraphSegmentation::test_numbered_format_empty PASSED
-backend/tests/test_debate.py::TestClaimAggregation::test_majority_verdict PASSED
-backend/tests/test_debate.py::TestClaimAggregation::test_empty_results PASSED
-backend/tests/test_debate.py::TestClaimAggregation::test_missing_claim_verdicts PASSED
-backend/tests/test_debate.py::TestCrossPollination::test_selects_strong_from_others PASSED
-backend/tests/test_debate.py::TestCrossPollination::test_excludes_own_claims PASSED
-backend/tests/test_debate.py::TestCrossPollination::test_max_claims_limit PASSED
-backend/tests/test_debate_integration.py::test_two_rounds_yields_correct_events PASSED
-backend/tests/test_debate_integration.py::test_chat_only_forces_single_round PASSED
-backend/tests/test_debate_integration.py::test_convergence_stops_early PASSED
-backend/tests/test_debate_integration.py::test_all_models_fail_stops PASSED
-backend/tests/test_debate_integration.py::test_chat_ranking_with_rounds PASSED
-backend/tests/test_debate_integration.py::test_partial_model_failure_round2 PASSED
-backend/tests/test_debate_integration.py::test_debate_rounds_param_overrides_settings PASSED
-backend/tests/test_debate_integration.py::test_final_round_uses_prompt_override PASSED
-backend/tests/test_json_repair.py::test_extract_json_from_markdown PASSED
-backend/tests/test_json_repair.py::test_extract_json_fallback_braces PASSED
-backend/tests/test_json_repair.py::test_repair_trailing_comma PASSED
-backend/tests/test_json_repair.py::test_repair_returns_none_on_garbage PASSED
-backend/tests/test_json_repair.py::test_extract_nested_json PASSED
-backend/tests/test_json_repair.py::test_extract_json_array PASSED
-backend/tests/test_json_repair.py::test_extract_empty_text PASSED
-backend/tests/test_json_repair.py::test_repair_empty_text PASSED
-backend/tests/test_settings_backup.py::test_export_returns_json_download PASSED
-backend/tests/test_settings_backup.py::test_export_includes_api_key_values PASSED
-backend/tests/test_settings_backup.py::test_export_rejects_remote_client_without_admin_token PASSED
-backend/tests/test_settings_backup.py::test_export_rejects_proxied_remote_client_without_admin_token PASSED
-backend/tests/test_settings_backup.py::test_export_accepts_remote_client_with_admin_token PASSED
-backend/tests/test_settings_backup.py::test_import_valid_settings PASSED
-backend/tests/test_settings_backup.py::test_import_invalid_json PASSED
-backend/tests/test_settings_backup.py::test_import_invalid_settings PASSED
-backend/tests/test_settings_backup.py::test_reset_returns_success PASSED
-backend/tests/test_settings_backup.py::test_reset_saves_defaults PASSED
+    <p style="margin-top: 12px;">The other <strong>99 claims were rated STRONG</strong> with high agreement (most at 100%).</p>
 
-49 passed`;
+    <h3>Round 1 Rankings</h3>
+    <table>
+        <tr><th>#</th><th>Model</th><th>Avg Rank</th></tr>
+        <tr><td>1</td><td>gpt-5.4-mini</td><td>1.75</td></tr>
+        <tr><td>2</td><td>deepseek-v4-flash</td><td>2.00</td></tr>
+        <tr><td>3</td><td>claude-opus-4-6</td><td>2.00</td></tr>
+        <tr><td>4</td><td>gemini-2.5-flash-lite</td><td>4.00</td></tr>
+    </table>
 
-        const el = document.getElementById('test-output');
-        if (el) {
-            el.innerHTML = testOutput.replace(/PASSED/g, '<span class="test-pass">PASSED</span>')
-                .replace(/(49 passed)/g, '<span class="test-pass" style="font-weight:bold">$1</span>');
-        }
+    <div class="screenshot">
+        <img src="screenshots/06-debate-conversation.png" alt="Round 1 Stage 2 showing claim verdicts">
+        <div class="screenshot-caption">Stage 2 showing per-evaluator claim verdicts. Each model rated all 101 canonical claims.</div>
+    </div>
+</div>
 
-        // Populate commits
-        const commits = [
-            ['268cb6a', 'feat(phase2): add claim/paragraph critique building blocks'],
-            ['9effa45', 'feat(phase2): extend debate orchestrator for claim and paragraph modes'],
-            ['5b9d001', 'feat(frontend): add ClaimCards component for claim-level Stage 2 display'],
-            ['474fb93', 'feat(frontend): enable critique mode selection in settings'],
-            ['b4526fa', 'test: add Phase 2 tests for paragraph, claim aggregation, cross-pollination'],
-        ];
-        const tbody = document.getElementById('commits');
-        if (tbody) {
-            commits.forEach(([sha, msg]) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><code>${sha}</code></td><td>${msg}</td>`;
-                tbody.appendChild(tr);
-            });
-        }
-    </script>
+<!-- 3. Round 2: Targeted Revision -->
+<div class="section">
+    <h2>3. Round 2: Models Revise with Claim Feedback</h2>
+
+    <p>Each model received <strong>personalized feedback</strong> in Round 2:</p>
+    <ul style="margin: 8px 0 16px 24px; color: #94a3b8;">
+        <li>Their own claims with peer verdicts (B3 was flagged ACCEPTABLE for DeepSeek)</li>
+        <li>Top-rated STRONG claims from other models for cross-pollination</li>
+    </ul>
+
+    <h3>What changed?</h3>
+
+    <div class="highlight-box green">
+        <strong style="color: #22c55e;">All 95 claims in Round 2 are STRONG (100%)</strong>
+        <p style="margin-top: 4px; color: #94a3b8;">
+            The 2 non-strong claims from Round 1 were addressed:
+        </p>
+        <ul style="margin: 8px 0 0 24px; color: #94a3b8;">
+            <li><strong>B3</strong> (ITER first plasma date) &mdash; DeepSeek refined the claim in Round 2, adding
+                qualification about repeated delays. See C16/C17 in Round 2.</li>
+            <li><strong>D26</strong> (vague "30 years" framing) &mdash; Claude dropped the vague claim entirely in
+                Round 2 and replaced it with more specific timeline claims (B27, B31, B32).</li>
+        </ul>
+    </div>
+
+    <h3>Response Growth (models elaborated with feedback)</h3>
+    <table>
+        <tr><th>Model</th><th>Round 1</th><th>Round 2</th><th>Change</th></tr>
+        <tr><td>gpt-5.4-mini</td><td>2,974 chars</td><td>3,326 chars</td><td style="color:#22c55e">+12%</td></tr>
+        <tr><td>deepseek-v4-flash</td><td>4,151 chars</td><td>6,110 chars</td><td style="color:#22c55e">+47%</td></tr>
+        <tr><td>claude-opus-4-6</td><td>4,446 chars</td><td>4,891 chars</td><td style="color:#22c55e">+10%</td></tr>
+        <tr><td>gemini-2.5-flash-lite</td><td>9,139 chars</td><td colspan="2" style="color:#94a3b8">(timed out in Round 2)</td></tr>
+    </table>
+
+    <h3>Rankings Shifted</h3>
+    <table>
+        <tr><th>Model</th><th>Round 1</th><th>Round 2</th><th>Movement</th></tr>
+        <tr><td>gpt-5.4-mini</td><td>#1 (1.75)</td><td>#1 (1.67)</td><td>Held top</td></tr>
+        <tr><td>claude-opus-4-6</td><td>#3 (2.00)</td><td><strong style="color:#22c55e">#2 (1.67)</strong></td><td style="color:#22c55e">Up 1</td></tr>
+        <tr><td>deepseek-v4-flash</td><td>#2 (2.00)</td><td>#3 (2.67)</td><td style="color:#ef4444">Down 1</td></tr>
+    </table>
+
+    <div class="screenshot">
+        <img src="screenshots/11-debate-scroll-4.png" alt="Round 2 Visual Leaderboard and Chairman verdict">
+        <div class="screenshot-caption">Round 2 Visual Leaderboard showing updated rankings and the start of the Chairman's FINAL VERDICT.</div>
+    </div>
+</div>
+
+<!-- 4. Chairman's Final Verdict -->
+<div class="section">
+    <h2>4. Chairman's Final Verdict References Claim Consensus</h2>
+
+    <div class="screenshot">
+        <img src="screenshots/12-debate-scroll-5.png" alt="Chairman final verdict">
+        <div class="screenshot-caption">The chairman's final synthesis explicitly references claim-level consensus from the debate.</div>
+    </div>
+
+    <div class="quote">
+        "After two full rounds of deliberation across three models, <strong>all claims reached STRONG consensus</strong>.
+        There were no contested or dropped claims. Two claims received moderate qualifications from one model
+        (B32 on deployment timelines; C16/C17 on ITER schedules), and these are noted below.
+        The winner is <strong>Response B (Claude)</strong>, which was ranked first by one model and second by two others,
+        and which provided the most analytically rigorous, evidence-specific, and well-structured synthesis."
+    </div>
+
+    <p style="margin-top: 12px; color: #94a3b8;">
+        The chairman used claim verdict data to make its final determination. This is the key Phase 2 improvement:
+        the synthesis is grounded in specific, evaluated claims rather than vague impressions.
+    </p>
+</div>
+
+<!-- 5. Settings UI -->
+<div class="section">
+    <h2>5. Settings: Critique Mode Selection</h2>
+    <div class="grid-2">
+        <div>
+            <div class="screenshot">
+                <img src="screenshots/01-settings-critique-mode.png" alt="Settings with freeform selected">
+                <div class="screenshot-caption">Free-form mode (default, Phase 1 behavior)</div>
+            </div>
+        </div>
+        <div>
+            <div class="screenshot">
+                <img src="screenshots/02-settings-claim-mode-selected.png" alt="Claim mode selected">
+                <div class="screenshot-caption">Claim-level selected with cost hint</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 6. API Validation -->
+<div class="section">
+    <h2>6. API Validation</h2>
+    <table>
+        <tr><th>Request</th><th>Result</th></tr>
+        <tr><td class="mono">PUT /api/settings {"critique_mode": "freeform"}</td><td><span class="badge badge-pass">200 OK</span></td></tr>
+        <tr><td class="mono">PUT /api/settings {"critique_mode": "paragraph"}</td><td><span class="badge badge-pass">200 OK</span></td></tr>
+        <tr><td class="mono">PUT /api/settings {"critique_mode": "claim"}</td><td><span class="badge badge-pass">200 OK</span></td></tr>
+        <tr><td class="mono">PUT /api/settings {"critique_mode": "invalid"}</td><td><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">400 Rejected</span></td></tr>
+    </table>
+</div>
+
+<!-- 7. Test Results -->
+<div class="section">
+    <h2>7. Test Suite: 49 Tests Passing <span class="badge badge-pass">ALL PASS</span></h2>
+    <table>
+        <tr><th>Test File</th><th>Tests</th><th>What's Covered</th></tr>
+        <tr><td><code>test_debate.py</code></td><td>23 <span class="badge badge-new">+12 new</span></td>
+            <td>convergence, truncation, paragraph segmentation, claim aggregation, cross-pollination</td></tr>
+        <tr><td><code>test_debate_integration.py</code></td><td>8</td>
+            <td>multi-round orchestration, convergence, prompt override</td></tr>
+        <tr><td><code>test_json_repair.py</code></td><td>8 <span class="badge badge-new">new</span></td>
+            <td>JSON extraction, repair, markdown fence, arrays, edge cases</td></tr>
+        <tr><td><code>test_settings_backup.py</code></td><td>10</td>
+            <td>export, import, reset, auth</td></tr>
+    </table>
+</div>
+
+<!-- 8. Architecture -->
+<div class="section">
+    <h2>8. How Claim-Level Debate Works</h2>
+    <div style="background:#1a1a2e; border-radius:8px; padding:20px; font-family:monospace; font-size:0.8rem; line-height:1.8;">
+<span style="color:#3b82f6;font-weight:bold">ROUND 1:</span>
+  Stage 1: 4 models respond independently
+       |
+  <span style="color:#eab308">CLAIM EXTRACTION</span>: Chairman decomposes into 101 canonical claims
+       |    A1: "Fusion is unlikely to be commercially competitive within 20 years"
+       |    B3: "ITER aims for first plasma in 2025-2027"  &larr; <span style="color:#eab308">CONTESTED</span>
+       |    D26: "Fusion is genuinely 20-30 years away"    &larr; <span style="color:#eab308">CONTESTED</span>
+       |
+  Stage 2: All 4 models evaluate all 101 claims
+       |    B3: <span style="color:#eab308">ACCEPTABLE (50%)</span> | D26: <span style="color:#eab308">ACCEPTABLE (67%)</span>
+       |    99 others: <span style="color:#22c55e">STRONG</span>
+       |
+  Stage 3: Chairman synthesizes round 1
+
+<span style="color:#3b82f6;font-weight:bold">ROUND 2:</span>
+  <span style="color:#06b6d4">PER-MODEL FEEDBACK</span>:
+    DeepSeek: "Your B3 was ACCEPTABLE. Consider A1 from GPT (STRONG)."
+    Claude:   "Your D26 was ACCEPTABLE. Consider B1 from DeepSeek (STRONG)."
+       |
+  Stage 1: Models revise (DeepSeek +47% longer, Claude drops D26)
+       |
+  <span style="color:#eab308">CLAIM EXTRACTION</span>: Chairman extracts 95 claims from revised responses
+       |
+  Stage 2: All claims now <span style="color:#22c55e">STRONG (100%)</span>
+       |
+  Stage 3: Chairman delivers FINAL VERDICT citing claim consensus
+    </div>
+</div>
+
+<!-- 9. Files -->
+<div class="section">
+    <h2>9. Files Changed (13 files, +1,191 / -48 lines)</h2>
+    <table>
+        <tr><th>File</th><th>Change</th></tr>
+        <tr><td><code>backend/debate.py</code></td><td>Orchestrator extended for claim/paragraph paths (+490 lines)</td></tr>
+        <tr><td><code>backend/json_repair.py</code></td><td><span class="badge badge-new">NEW</span> JSON extraction and repair</td></tr>
+        <tr><td><code>backend/prompts.py</code></td><td>7 new prompt templates for claim/paragraph modes</td></tr>
+        <tr><td><code>backend/council.py</code></td><td>per_model_messages, Stage 2 prompt_override</td></tr>
+        <tr><td><code>backend/main.py</code></td><td>Accept paragraph/claim in validation</td></tr>
+        <tr><td><code>frontend/.../ClaimCards.jsx</code></td><td><span class="badge badge-new">NEW</span> Claim card UI with expandable verdicts</td></tr>
+        <tr><td><code>frontend/.../Stage2.jsx</code></td><td>Renders ClaimCards when data present</td></tr>
+        <tr><td><code>frontend/.../CouncilConfig.jsx</code></td><td>Critique mode radio buttons</td></tr>
+        <tr><td><code>backend/tests/test_debate.py</code></td><td>12 new tests for Phase 2</td></tr>
+        <tr><td><code>backend/tests/test_json_repair.py</code></td><td><span class="badge badge-new">NEW</span> 8 tests</td></tr>
+    </table>
+</div>
+
+<div style="text-align:center; color:#475569; padding:20px; font-size:0.8rem;">
+    Evidence captured from live 2-round claim debate on 2026-05-18. Generated by Claude Code.
+</div>
+
+</div>
 </body>
 </html>
