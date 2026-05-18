@@ -47,6 +47,7 @@ export default function CouncilConfig({
     setActiveSection,
     setActivePromptTab,
     // Debate Settings
+    critiqueMode, setCritiqueMode,
     debateRounds, setDebateRounds,
     autoConverge, setAutoConverge,
     convergenceThreshold, setConvergenceThreshold,
@@ -488,6 +489,36 @@ export default function CouncilConfig({
                 {/* Debate Settings */}
                 <div className="settings-group" style={{ marginTop: '24px' }}>
                     <h4>Debate Settings</h4>
+                    <div className="setting-row">
+                        <label>Critique Mode</label>
+                        <div className="radio-group" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                <input type="radio" name="critiqueMode" value="freeform"
+                                    checked={critiqueMode === 'freeform'}
+                                    onChange={(e) => setCritiqueMode(e.target.value)} />
+                                Free-form
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                <input type="radio" name="critiqueMode" value="paragraph"
+                                    checked={critiqueMode === 'paragraph'}
+                                    onChange={(e) => setCritiqueMode(e.target.value)} />
+                                Paragraph-level
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                <input type="radio" name="critiqueMode" value="claim"
+                                    checked={critiqueMode === 'claim'}
+                                    onChange={(e) => setCritiqueMode(e.target.value)} />
+                                Claim-level
+                            </label>
+                        </div>
+                    </div>
+                    {critiqueMode !== 'freeform' && (
+                        <p className="setting-hint">
+                            {critiqueMode === 'claim'
+                                ? 'Claim-level adds ~1 extra API call per round for extraction. Custom Stage 2 prompt applies only in Free-form mode.'
+                                : 'Paragraph-level pre-numbers paragraphs for stable evaluation. Custom Stage 2 prompt applies only in Free-form mode.'}
+                        </p>
+                    )}
                     <div className="setting-row">
                         <label>Number of Rounds</label>
                         <select value={debateRounds} onChange={(e) => setDebateRounds(Number(e.target.value))}>
