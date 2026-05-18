@@ -68,3 +68,52 @@ The title should be concise and descriptive. Do not use quotes or punctuation in
 Question: {user_query}
 
 Title:"""
+
+STAGE1_ROUND_N_FREEFORM_PROMPT = """You are refining your answer in Round {round_number} of a multi-round deliberation.
+
+Original question: {user_query}
+{search_context_block}
+
+Previous round's best synthesis:
+{previous_synthesis}
+
+Previous round's ranking results:
+{previous_rankings_summary}
+
+Consider the previous round's insights. You may:
+- Strengthen arguments that were ranked highly
+- Challenge weaknesses identified in the rankings
+- Offer new perspectives not yet considered
+- Refine your position based on peer feedback
+
+Provide your revised, improved response."""
+
+STAGE1_ROUND_N_CHAT_RANKING_PROMPT = """You are refining your answer in Round {round_number} of a multi-round deliberation.
+
+Original question: {user_query}
+{search_context_block}
+
+Previous round's ranking results (how your peers ranked the responses):
+{previous_rankings_summary}
+
+Your previous response was ranked #{your_rank} out of {total_models} models.
+{rank_feedback}
+
+Provide your revised, improved response."""
+
+STAGE3_FINAL_FREEFORM_PROMPT = """You are the Chairman delivering the FINAL verdict after {total_rounds} rounds of deliberation.
+
+Original question: {user_query}
+
+{search_context_block}
+
+Previous round's synthesis:
+{previous_synthesis}
+
+This final round's individual responses:
+{stage1_text}
+
+This final round's peer rankings:
+{stage2_text}
+
+Deliver the definitive answer. Explain how the deliberation evolved across rounds and why the final position is strongest. Declare the winning perspective."""

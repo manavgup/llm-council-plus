@@ -99,6 +99,9 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
   const [councilTemperature, setCouncilTemperature] = useState(0.5);
   const [chairmanTemperature, setChairmanTemperature] = useState(0.4);
   const [stage2Temperature, setStage2Temperature] = useState(0.3);
+  const [debateRounds, setDebateRounds] = useState(1);
+  const [autoConverge, setAutoConverge] = useState(true);
+  const [convergenceThreshold, setConvergenceThreshold] = useState(2);
 
   // System Prompts State
   const [prompts, setPrompts] = useState({
@@ -156,6 +159,9 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
       if (councilTemperature !== (settings.council_temperature ?? 0.5)) return true;
       if (chairmanTemperature !== (settings.chairman_temperature ?? 0.4)) return true;
       if (stage2Temperature !== (settings.stage2_temperature ?? 0.3)) return true;
+      if (debateRounds !== (settings.debate_rounds ?? 1)) return true;
+      if (autoConverge !== (settings.auto_converge ?? true)) return true;
+      if (convergenceThreshold !== (settings.convergence_threshold ?? 2)) return true;
 
       // Remote/Local filters
       if (JSON.stringify(councilMemberFilters) !== JSON.stringify(settings.council_member_filters || {})) return true;
@@ -186,6 +192,9 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
     councilTemperature,
     chairmanTemperature,
     stage2Temperature,
+    debateRounds,
+    autoConverge,
+    convergenceThreshold,
     councilMemberFilters,
     chairmanFilter,
     prompts
@@ -371,6 +380,9 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
       setCouncilTemperature(data.council_temperature ?? 0.5);
       setChairmanTemperature(data.chairman_temperature ?? 0.4);
       setStage2Temperature(data.stage2_temperature ?? 0.3);
+      setDebateRounds(data.debate_rounds || 1);
+      setAutoConverge(data.auto_converge !== false);
+      setConvergenceThreshold(data.convergence_threshold || 2);
 
       // Initialize refs for auto-save tracking (prevents auto-save on initial load)
       prevCouncilModelsRef.current = loadedCouncilModels;
@@ -1272,6 +1284,9 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
         council_temperature: councilTemperature,
         chairman_temperature: chairmanTemperature,
         stage2_temperature: stage2Temperature,
+        debate_rounds: debateRounds,
+        auto_converge: autoConverge,
+        convergence_threshold: convergenceThreshold,
 
         // Remote/Local filters for each selection
         council_member_filters: councilMemberFilters,
@@ -1566,6 +1581,14 @@ export default function Settings({ onClose, ollamaStatus, onRefreshOllama, initi
                 handleAddCouncilMember={handleAddCouncilMember}
                 setActiveSection={setActiveSection}
                 setActivePromptTab={setActivePromptTab}
+                // Debate Settings
+                debateRounds={debateRounds}
+                setDebateRounds={setDebateRounds}
+                autoConverge={autoConverge}
+                setAutoConverge={setAutoConverge}
+                convergenceThreshold={convergenceThreshold}
+                setConvergenceThreshold={setConvergenceThreshold}
+                executionMode={settings?.execution_mode || DEFAULT_EXECUTION_MODE}
                 // Validation
                 validationErrors={validationErrors}
                 chairmanSelectRef={chairmanSelectRef}

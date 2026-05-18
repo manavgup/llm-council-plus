@@ -46,6 +46,11 @@ export default function CouncilConfig({
     handleAddCouncilMember,
     setActiveSection,
     setActivePromptTab,
+    // Debate Settings
+    debateRounds, setDebateRounds,
+    autoConverge, setAutoConverge,
+    convergenceThreshold, setConvergenceThreshold,
+    executionMode,
     // Validation
     validationErrors = {},
     chairmanSelectRef
@@ -478,6 +483,47 @@ export default function CouncilConfig({
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Debate Settings */}
+                <div className="settings-group" style={{ marginTop: '24px' }}>
+                    <h4>Debate Settings</h4>
+                    <div className="setting-row">
+                        <label>Number of Rounds</label>
+                        <select value={debateRounds} onChange={(e) => setDebateRounds(Number(e.target.value))}>
+                            {[1, 2, 3, 4, 5].map((n) => (
+                                <option key={n} value={n}>{n}{n === 1 ? ' (single pass)' : ` rounds`}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {debateRounds > 1 && (
+                        <>
+                            <div className="setting-row">
+                                <label>
+                                    <input type="checkbox" checked={autoConverge} onChange={(e) => setAutoConverge(e.target.checked)} />
+                                    {' '}Auto-converge (stop early if rankings stabilize)
+                                </label>
+                            </div>
+                            {autoConverge && (
+                                <div className="setting-row">
+                                    <label>Convergence threshold</label>
+                                    <select value={convergenceThreshold} onChange={(e) => setConvergenceThreshold(Number(e.target.value))}>
+                                        {[1, 2, 3].map((n) => (
+                                            <option key={n} value={n}>{n} stable round{n > 1 ? 's' : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            {executionMode === 'chat_only' && (
+                                <p className="setting-hint" style={{color: '#f59e0b'}}>
+                                    Multi-round debate is not available in Chat Only mode.
+                                </p>
+                            )}
+                            <p className="setting-hint">
+                                More rounds = deeper analysis, higher API cost.
+                            </p>
+                        </>
+                    )}
                 </div>
 
             </section>

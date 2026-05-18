@@ -339,7 +339,7 @@ export const api = {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
         },
-        body: JSON.stringify({ content, web_search: webSearch, execution_mode: executionMode }),
+        body: JSON.stringify({ content, web_search: webSearch, execution_mode: executionMode, debate_rounds: options.debateRounds || undefined }),
         signal,
         cache: 'no-store',
       }

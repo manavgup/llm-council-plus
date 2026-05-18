@@ -7,6 +7,7 @@ import Stage2, { Stage2Skeleton } from './Stage2';
 import Stage3, { Stage3Skeleton } from './Stage3';
 import CouncilGrid from './CouncilGrid';
 import ExecutionModeToggle from './ExecutionModeToggle';
+import RoundNavigator from './RoundNavigator';
 import { api } from '../api';
 import './ChatInterface.css';
 
@@ -134,6 +135,27 @@ export default function ChatInterface({
                                                 extractedQuery={msg.metadata?.extracted_query}
                                                 searchContext={msg.metadata?.search_context}
                                             />
+                                        )}
+
+                                        {/* Round Navigator */}
+                                        {msg.totalRounds > 1 && (
+                                          <RoundNavigator
+                                            currentRound={msg.currentRound}
+                                            totalRounds={msg.totalRounds}
+                                            converged={msg.converged}
+                                            convergenceRound={msg.convergenceRound}
+                                          />
+                                        )}
+
+                                        {/* Round Transition Indicator */}
+                                        {msg.roundTransition && (
+                                          <div className="round-transition">
+                                            <div className="round-transition-icon">&#x27F3;</div>
+                                            <div className="round-transition-text">
+                                              <strong>Starting Round {(msg.currentRound || 1) + 1}...</strong>
+                                              <span>Models are revising their responses based on peer feedback</span>
+                                            </div>
+                                          </div>
                                         )}
 
                                         {/* Stage 1: Council Grid Visualization */}
