@@ -201,7 +201,8 @@ async def stage2_collect_rankings(
     user_query: str,
     stage1_results: List[Dict[str, Any]],
     search_context: str = "",
-    request: Any = None
+    request: Any = None,
+    prompt_override: "str | None" = None,
 ) -> Any: # Returns an async generator
     """
     Stage 2: Collect peer rankings from all council models.
@@ -233,25 +234,28 @@ async def stage2_collect_rankings(
         for label, result in zip(labels, successful_results)
     ])
 
-    search_context_block = ""
-    if search_context:
-        search_context_block = f"Context from Web Search:\n{search_context}\n"
+    if prompt_override:
+        ranking_prompt = prompt_override
+    else:
+        search_context_block = ""
+        if search_context:
+            search_context_block = f"Context from Web Search:\n{search_context}\n"
 
-    try:
-        # Ensure prompt is not None
-        prompt_template = settings.stage2_prompt
-        if not prompt_template:
-            from .prompts import STAGE2_PROMPT_DEFAULT
-            prompt_template = STAGE2_PROMPT_DEFAULT
+        try:
+            # Ensure prompt is not None
+            prompt_template = settings.stage2_prompt
+            if not prompt_template:
+                from .prompts import STAGE2_PROMPT_DEFAULT
+                prompt_template = STAGE2_PROMPT_DEFAULT
 
-        ranking_prompt = prompt_template.format(
-            user_query=user_query,
-            responses_text=responses_text,
-            search_context_block=search_context_block
-        )
-    except (KeyError, AttributeError, TypeError) as e:
-        logger.warning(f"Error formatting Stage 2 prompt: {e}. Using fallback.")
-        ranking_prompt = f"Question: {user_query}\n\n{responses_text}\n\nRank these responses."
+            ranking_prompt = prompt_template.format(
+                user_query=user_query,
+                responses_text=responses_text,
+                search_context_block=search_context_block
+            )
+        except (KeyError, AttributeError, TypeError) as e:
+            logger.warning(f"Error formatting Stage 2 prompt: {e}. Using fallback.")
+            ranking_prompt = f"Question: {user_query}\n\n{responses_text}\n\nRank these responses."
 
     messages = [{"role": "user", "content": ranking_prompt}]
 

@@ -175,6 +175,151 @@ def select_top_claims_for_model(
     return candidates[:max_claims]
 
 
+def _format_own_claims(
+    model: str,
+    canonical_claims: Dict[str, List[Dict[str, str]]],
+    aggregated: Dict[str, Dict[str, Any]],
+    label_to_model: Dict[str, str],
+) -> str:
+    """Format a model's own claims with peer verdicts for round N+1 prompt."""
+    model_to_label = {v: k for k, v in label_to_model.items()}
+    label = model_to_label.get(model)
+    if not label or label not in canonical_claims:
+        return "No claims from your previous response."
+
+    lines = []
+    for claim in canonical_claims[label]:
+        cid = claim["id"]
+        verdict_info = aggregated.get(cid, {})
+        majority = verdict_info.get("majority_verdict", "unknown").upper()
+        agreement = verdict_info.get("agreement", 0)
+        lines.append(f'- {cid}: "{claim["claim"]}" — {majority} ({agreement:.0%} agree)')
+    return "\n".join(lines) if lines else "No claims from your previous response."
+
+
+def _format_own_paragraphs(
+    model: str,
+    stage1_results: List[Dict[str, Any]],
+    stage2_results: List[Dict[str, Any]],
+    label_to_model: Dict[str, str],
+) -> str:
+    """Format a model's own paragraphs with peer verdicts for round N+1 prompt."""
+    model_to_label = {v: k for k, v in label_to_model.items()}
+    label = model_to_label.get(model)
+    if not label:
+        return "No paragraph feedback available."
+
+    # Find the model's response
+    model_response = None
+    for r in stage1_results:
+        if r.get("model") == model and r.get("response"):
+            model_response = r["response"]
+            break
+    if not model_response:
+        return "No paragraph feedback available."
+
+    paragraphs = pre_segment_paragraphs(model_response)
+
+    # Collect annotations for this model's response from all evaluators
+    para_verdicts: Dict[int, List[str]] = {}
+    para_comments: Dict[int, List[str]] = {}
+    for result in stage2_results:
+        annotations = result.get("annotations", [])
+        for ann in annotations:
+            if ann.get("response") == label:
+                pn = ann.get("paragraph", 0)
+                para_verdicts.setdefault(pn, []).append(ann.get("verdict", ""))
+                if ann.get("comment"):
+                    para_comments.setdefault(pn, []).append(ann["comment"])
+
+    lines = []
+    for i, para in enumerate(paragraphs, 1):
+        verdicts = para_verdicts.get(i, [])
+        if verdicts:
+            from collections import Counter
+            c = Counter(verdicts)
+            majority = c.most_common(1)[0][0].upper()
+            lines.append(f'- [Para {i}] "{para[:80]}..." — {majority}')
+        else:
+            lines.append(f'- [Para {i}] "{para[:80]}..." — No feedback')
+    return "\n".join(lines) if lines else "No paragraph feedback available."
+
+
+def _select_top_paragraphs_from_others(
+    stage1_results: List[Dict[str, Any]],
+    stage2_results: List[Dict[str, Any]],
+    target_model: str,
+    label_to_model: Dict[str, str],
+    max_paras: int = 5,
+) -> str:
+    """Select top-rated paragraphs from OTHER models for cross-pollination."""
+    model_to_label = {v: k for k, v in label_to_model.items()}
+    target_label = model_to_label.get(target_model)
+
+    # Collect annotations per (label, paragraph) across evaluators
+    from collections import Counter
+    para_scores: Dict[tuple, list] = {}
+    for result in stage2_results:
+        for ann in result.get("annotations", []):
+            key = (ann.get("response", ""), ann.get("paragraph", 0))
+            para_scores.setdefault(key, []).append(ann.get("verdict", ""))
+
+    # Find strong paragraphs from other models
+    candidates = []
+    for (label, para_num), verdicts in para_scores.items():
+        if label == target_label:
+            continue
+        c = Counter(verdicts)
+        if c.most_common(1)[0][0] == "strong":
+            agreement = c["strong"] / len(verdicts)
+            # Find the actual paragraph text
+            model_name = label_to_model.get(label)
+            para_text = ""
+            for r in stage1_results:
+                if r.get("model") == model_name and r.get("response"):
+                    paras = pre_segment_paragraphs(r["response"])
+                    if 1 <= para_num <= len(paras):
+                        para_text = paras[para_num - 1]
+                    break
+            if para_text:
+                candidates.append({
+                    "label": label,
+                    "paragraph": para_num,
+                    "text": para_text[:150],
+                    "agreement": agreement,
+                })
+
+    candidates.sort(key=lambda x: x["agreement"], reverse=True)
+    lines = []
+    for c in candidates[:max_paras]:
+        lines.append(f'- [{c["label"]} Para {c["paragraph"]}] "{c["text"]}..." — STRONG ({c["agreement"]:.0%} agree)')
+    return "\n".join(lines) if lines else "None"
+
+
+def _parse_claim_verdicts_from_ranking(ranking_text: str) -> Optional[Dict[str, Dict[str, str]]]:
+    """Extract claim verdict JSON from a Stage 2 ranking response."""
+    from .json_repair import extract_json_block
+    if not ranking_text:
+        return None
+    result = extract_json_block(ranking_text)
+    if isinstance(result, dict):
+        # Validate it looks like claim verdicts {id: {verdict, reason}}
+        if all(isinstance(v, dict) and "verdict" in v for v in result.values()):
+            return result
+    return None
+
+
+def _parse_paragraph_annotations_from_ranking(ranking_text: str) -> Optional[List[Dict[str, Any]]]:
+    """Extract paragraph annotation JSON from a Stage 2 ranking response."""
+    from .json_repair import extract_json_block
+    if not ranking_text:
+        return None
+    result = extract_json_block(ranking_text)
+    if isinstance(result, list):
+        return result
+    return None
+
+
 async def run_iterative_debate(
     user_query: str,
     search_context: str = "",
@@ -187,6 +332,8 @@ async def run_iterative_debate(
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Orchestrate multi-round debate. Yields SSE-ready event dicts.
+
+    Supports three critique modes: freeform, paragraph, claim.
 
     The caller (main.py endpoint) is responsible for:
     - JSON-serializing and SSE-framing each yielded dict
@@ -201,6 +348,7 @@ async def run_iterative_debate(
     )
     auto_converge = settings.auto_converge
     convergence_threshold = settings.convergence_threshold
+    critique_mode = settings.critique_mode  # "freeform", "paragraph", or "claim"
 
     # Validate: chat_only doesn't support multi-round
     if execution_mode == "chat_only":
@@ -208,6 +356,11 @@ async def run_iterative_debate(
 
     previous_synthesis: Optional[str] = None
     previous_rankings: Optional[List[Dict[str, Any]]] = None
+    previous_canonical_claims: Optional[Dict[str, List[Dict[str, str]]]] = None
+    previous_aggregated_verdicts: Optional[Dict[str, Dict[str, Any]]] = None
+    previous_label_to_model: Dict[str, str] = {}
+    previous_stage1_results: List[Dict[str, Any]] = []
+    previous_stage2_results: List[Dict[str, Any]] = []
     all_rounds_data: List[Dict[str, Any]] = []
     convergence_count = 0
     converged = False
@@ -220,17 +373,72 @@ async def run_iterative_debate(
 
         # --- Build Stage 1 messages ---
         messages_override = None
+        per_model_messages = None
+        effective_mode = critique_mode  # May fall back to freeform
+
         if round_num > 1:
             from .prompts import (
                 STAGE1_ROUND_N_FREEFORM_PROMPT,
                 STAGE1_ROUND_N_CHAT_RANKING_PROMPT,
+                STAGE1_ROUND_N_CLAIM_PROMPT,
+                STAGE1_ROUND_N_PARAGRAPH_PROMPT,
                 STAGE1_SEARCH_CONTEXT_TEMPLATE,
             )
             search_block = ""
             if search_context:
                 search_block = STAGE1_SEARCH_CONTEXT_TEMPLATE.format(search_context=search_context)
 
-            if execution_mode == "full" and previous_synthesis:
+            if effective_mode == "claim" and previous_canonical_claims and previous_aggregated_verdicts:
+                # Per-model personalized prompts for claim mode
+                models = models_override or get_council_models()
+                per_model_messages = {}
+                for model in models:
+                    own_critiques = _format_own_claims(
+                        model, previous_canonical_claims,
+                        previous_aggregated_verdicts, previous_label_to_model,
+                    )
+                    top_others = select_top_claims_for_model(
+                        previous_canonical_claims, previous_aggregated_verdicts,
+                        model, previous_label_to_model,
+                    )
+                    top_text = "\n".join([
+                        f'- {c["id"]}: "{c["claim"]}" — STRONG ({c["agreement"]:.0%} agree)'
+                        for c in top_others
+                    ]) or "None"
+
+                    prompt = STAGE1_ROUND_N_CLAIM_PROMPT.format(
+                        round_number=round_num,
+                        user_query=user_query,
+                        search_context_block=search_block,
+                        own_claims_with_critiques=own_critiques,
+                        top_claims_from_others=top_text,
+                    )
+                    per_model_messages[model] = [{"role": "user", "content": prompt}]
+
+            elif effective_mode == "paragraph" and previous_rankings:
+                # Per-model personalized prompts for paragraph mode
+                models = models_override or get_council_models()
+                per_model_messages = {}
+                for model in models:
+                    own_paras = _format_own_paragraphs(
+                        model, previous_stage1_results,
+                        previous_stage2_results, previous_label_to_model,
+                    )
+                    top_paras = _select_top_paragraphs_from_others(
+                        previous_stage1_results, previous_stage2_results,
+                        model, previous_label_to_model,
+                    )
+                    prompt = STAGE1_ROUND_N_PARAGRAPH_PROMPT.format(
+                        round_number=round_num,
+                        user_query=user_query,
+                        search_context_block=search_block,
+                        own_paragraphs_with_critiques=own_paras,
+                        top_paragraphs_from_others=top_paras,
+                    )
+                    per_model_messages[model] = [{"role": "user", "content": prompt}]
+
+            elif execution_mode == "full" and previous_synthesis:
+                # Freeform mode (or fallback)
                 round_prompt = STAGE1_ROUND_N_FREEFORM_PROMPT.format(
                     round_number=round_num,
                     user_query=user_query,
@@ -238,6 +446,7 @@ async def run_iterative_debate(
                     previous_synthesis=truncate_text(previous_synthesis, MAX_SYNTHESIS_CHARS),
                     previous_rankings_summary=_build_rankings_summary(previous_rankings or []),
                 )
+                messages_override = [{"role": "user", "content": round_prompt}]
             else:
                 # chat_ranking mode: feedback from rankings only
                 round_prompt = STAGE1_ROUND_N_CHAT_RANKING_PROMPT.format(
@@ -249,7 +458,7 @@ async def run_iterative_debate(
                     total_models=len(previous_rankings or []),
                     rank_feedback="Improve your response based on peer feedback.",
                 )
-            messages_override = [{"role": "user", "content": round_prompt}]
+                messages_override = [{"role": "user", "content": round_prompt}]
 
         # --- Stage 1 ---
         yield {"type": "stage1_start", "round": round_num}
@@ -265,6 +474,7 @@ async def run_iterative_debate(
             models_override=models_override,
             history=history if round_num == 1 else None,
             messages_override=messages_override,
+            per_model_messages=per_model_messages,
         ):
             if isinstance(item, int):
                 total_models = item
@@ -287,25 +497,104 @@ async def run_iterative_debate(
             yield {"type": "error", "message": "All models failed in Stage 1."}
             return
 
-        # --- Stage 2 ---
+        # --- Mode-aware Stage 2 preparation ---
         stage2_results: List[Dict[str, Any]] = []
         label_to_model: Dict[str, str] = {}
         aggregate_rankings: List[Dict[str, Any]] = []
+        canonical_claims: Optional[Dict[str, List[Dict[str, str]]]] = None
+        aggregated_verdicts: Optional[Dict[str, Dict[str, Any]]] = None
 
         if execution_mode in ("chat_ranking", "full"):
             if request and await request.is_disconnected():
                 raise asyncio.CancelledError("Client disconnected")
 
+            # Build label_to_model for mode-specific prompt building
+            successful_results = [r for r in stage1_results if not r.get("error")]
+            labels = [chr(65 + i) for i in range(len(successful_results))]
+            label_to_model_preview = {
+                f"Response {label}": result["model"]
+                for label, result in zip(labels, successful_results)
+            }
+
+            stage2_prompt_override = None
+
+            if effective_mode == "paragraph":
+                # Build paragraph-annotated responses text
+                search_context_block = ""
+                if search_context:
+                    search_context_block = f"Context from Web Search:\n{search_context}\n"
+
+                responses_text = "\n\n".join([
+                    f"Response {label}:\n{format_numbered_paragraphs(result['response'])}"
+                    for label, result in zip(labels, successful_results)
+                ])
+
+                from .prompts import STAGE2_PARAGRAPH_PROMPT
+                stage2_prompt_override = STAGE2_PARAGRAPH_PROMPT.format(
+                    user_query=user_query,
+                    search_context_block=search_context_block,
+                    responses_text=responses_text,
+                )
+
+            elif effective_mode == "claim":
+                # Extract canonical claims first
+                responses_text_for_extraction = "\n\n".join([
+                    f"Response {label}:\n{result['response']}"
+                    for label, result in zip(labels, successful_results)
+                ])
+
+                canonical_claims = await extract_canonical_claims(
+                    responses_text_for_extraction, chairman_override
+                )
+
+                if canonical_claims is None:
+                    logger.warning("Claim extraction failed, falling back to freeform for this round")
+                    effective_mode = "freeform"
+                else:
+                    # Build claim-aware Stage 2 prompt
+                    search_context_block = ""
+                    if search_context:
+                        search_context_block = f"Context from Web Search:\n{search_context}\n"
+
+                    responses_text = "\n\n".join([
+                        f"Response {label}:\n{result['response']}"
+                        for label, result in zip(labels, successful_results)
+                    ])
+
+                    claims_text = "\n".join([
+                        f'  {c["id"]}: "{c["claim"]}"'
+                        for label_claims in canonical_claims.values()
+                        for c in label_claims
+                    ])
+
+                    from .prompts import STAGE2_CLAIM_PROMPT
+                    stage2_prompt_override = STAGE2_CLAIM_PROMPT.format(
+                        user_query=user_query,
+                        search_context_block=search_context_block,
+                        responses_text=responses_text,
+                        canonical_claims_text=claims_text,
+                    )
+
             yield {"type": "stage2_start", "round": round_num}
             await asyncio.sleep(0.05)
 
             async for item in stage2_collect_rankings(
-                user_query, stage1_results, search_context, request
+                user_query, stage1_results, search_context, request,
+                prompt_override=stage2_prompt_override,
             ):
                 if isinstance(item, dict) and not item.get("model"):
                     label_to_model = item
                     yield {"type": "stage2_init", "total": len(label_to_model), "round": round_num}
                     continue
+                # Post-process: extract structured data from ranking text
+                if effective_mode == "claim" and item.get("ranking"):
+                    cv = _parse_claim_verdicts_from_ranking(item["ranking"])
+                    if cv:
+                        item["claim_verdicts"] = cv
+                elif effective_mode == "paragraph" and item.get("ranking"):
+                    anns = _parse_paragraph_annotations_from_ranking(item["ranking"])
+                    if anns:
+                        item["annotations"] = anns
                 stage2_results.append(item)
                 yield {
                     "type": "stage2_progress",
@@ -317,13 +606,24 @@ async def run_iterative_debate(
                 await asyncio.sleep(0.01)
 
             aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
+
+            # Aggregate claim verdicts if in claim mode
+            if effective_mode == "claim" and canonical_claims:
+                aggregated_verdicts = aggregate_claim_verdicts(stage2_results)
+
+            stage2_complete_metadata = {
+                "label_to_model": label_to_model,
+                "aggregate_rankings": aggregate_rankings,
+            }
+            if canonical_claims:
+                stage2_complete_metadata["canonical_claims"] = canonical_claims
+            if aggregated_verdicts:
+                stage2_complete_metadata["aggregate_claim_verdicts"] = aggregated_verdicts
+
             yield {
                 "type": "stage2_complete",
                 "data": stage2_results,
-                "metadata": {
-                    "label_to_model": label_to_model,
-                    "aggregate_rankings": aggregate_rankings,
-                },
+                "metadata": stage2_complete_metadata,
                 "round": round_num,
             }
             await asyncio.sleep(0.05)
@@ -358,23 +658,45 @@ async def run_iterative_debate(
 
             # Build final chairman prompt for last round
             prompt_override = None
-            if is_final and round_num > 1 and previous_synthesis:
-                from .prompts import STAGE3_FINAL_FREEFORM_PROMPT
-
+            if is_final and round_num > 1:
                 search_block = ""
                 if search_context:
                     search_block = f"Context from Web Search:\n{search_context}\n"
 
                 stage1_text, stage2_text = build_stage_texts(stage1_results, stage2_results)
 
-                prompt_override = STAGE3_FINAL_FREEFORM_PROMPT.format(
-                    total_rounds=round_num,
-                    user_query=user_query,
-                    search_context_block=search_block,
-                    previous_synthesis=truncate_text(previous_synthesis, MAX_SYNTHESIS_CHARS),
-                    stage1_text=stage1_text,
-                    stage2_text=stage2_text,
-                )
+                if effective_mode == "claim" and canonical_claims:
+                    from .prompts import STAGE3_FINAL_CLAIM_PROMPT
+
+                    # Build claim evolution summary
+                    evolution_lines = []
+                    for label, claims in canonical_claims.items():
+                        for claim in claims:
+                            cid = claim["id"]
+                            vi = (aggregated_verdicts or {}).get(cid, {})
+                            verdict = vi.get("majority_verdict", "unknown").upper()
+                            evolution_lines.append(f'- {cid} "{claim["claim"]}": {verdict}')
+                    claim_evolution = "\n".join(evolution_lines) or "No claim data available."
+
+                    prompt_override = STAGE3_FINAL_CLAIM_PROMPT.format(
+                        total_rounds=round_num,
+                        user_query=user_query,
+                        search_context_block=search_block,
+                        claim_evolution_summary=claim_evolution,
+                        stage1_text=stage1_text,
+                        stage2_text=stage2_text,
+                    )
+                elif previous_synthesis:
+                    from .prompts import STAGE3_FINAL_FREEFORM_PROMPT
+
+                    prompt_override = STAGE3_FINAL_FREEFORM_PROMPT.format(
+                        total_rounds=round_num,
+                        user_query=user_query,
+                        search_context_block=search_block,
+                        previous_synthesis=truncate_text(previous_synthesis, MAX_SYNTHESIS_CHARS),
+                        stage1_text=stage1_text,
+                        stage2_text=stage2_text,
+                    )
 
             stage3_result = await stage3_synthesize_final(
                 user_query, stage1_results, stage2_results, search_context,
@@ -385,16 +707,30 @@ async def run_iterative_debate(
 
             previous_synthesis = stage3_result.get("response", "") if stage3_result else None
 
+        # Save state for next round's per-model prompts
+        previous_canonical_claims = canonical_claims
+        previous_aggregated_verdicts = aggregated_verdicts
+        previous_label_to_model = label_to_model
+        previous_stage1_results = stage1_results
+        previous_stage2_results = stage2_results
+
         # Save round data
+        round_metadata = {
+            "label_to_model": label_to_model,
+            "aggregate_rankings": aggregate_rankings,
+        }
+        if canonical_claims:
+            round_metadata["canonical_claims"] = canonical_claims
+        if aggregated_verdicts:
+            round_metadata["aggregate_claim_verdicts"] = aggregated_verdicts
+
         round_data = {
             "round_number": round_num,
+            "critique_mode": effective_mode,
             "stage1": stage1_results,
             "stage2": stage2_results if execution_mode in ("chat_ranking", "full") else None,
             "stage3": stage3_result if execution_mode == "full" else None,
-            "metadata": {
-                "label_to_model": label_to_model,
-                "aggregate_rankings": aggregate_rankings,
-            },
+            "metadata": round_metadata,
         }
         all_rounds_data.append(round_data)
 
@@ -408,5 +744,6 @@ async def run_iterative_debate(
         "type": "debate_complete",
         "total_rounds_executed": len(all_rounds_data),
         "converged": converged,
+        "critique_mode": critique_mode,
         "rounds": all_rounds_data,
     }

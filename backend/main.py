@@ -380,7 +380,7 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
             effective_rounds = body.debate_rounds if body.debate_rounds is not None else settings.debate_rounds
             effective_rounds = min(max(effective_rounds, 1), MAX_DEBATE_ROUNDS)
 
-            if effective_rounds > 1:
+            if effective_rounds > 1 or settings.critique_mode != "freeform":
                 # --- Multi-round debate path ---
                 rounds_data = []
                 final_stage1 = []
@@ -1060,8 +1060,8 @@ async def update_app_settings(request: UpdateSettingsRequest):
         updates["execution_mode"] = request.execution_mode
 
     if request.critique_mode is not None:
-        if request.critique_mode not in ("freeform",):
-            raise HTTPException(status_code=400, detail="Only 'freeform' critique mode is supported")
+        if request.critique_mode not in ("freeform", "paragraph", "claim"):
+            raise HTTPException(status_code=400, detail="critique_mode must be freeform, paragraph, or claim")
         updates["critique_mode"] = request.critique_mode
     if request.debate_rounds is not None:
         if not (1 <= request.debate_rounds <= MAX_DEBATE_ROUNDS):
