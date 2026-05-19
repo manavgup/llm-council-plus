@@ -5,6 +5,15 @@ import ThinkBlockRenderer from './ThinkBlockRenderer';
 import StageTimer from './StageTimer';
 import './Stage4.css';
 
+/** Highlight [REVISED: ...] and [NEW: ...] markers for visual scanning */
+function highlightRevisionMarkers(text) {
+    if (!text) return text;
+    return text
+        .replace(/\[REVISED[:\s]*/gi, '**🔶 REVISED:** *')
+        .replace(/\[NEW[:\s]*/gi, '**🟢 NEW:** *')
+        .replace(/(?<=\*)(\.?\])/g, '*');  // close the italic before the bracket
+}
+
 export default function Stage4({ correctedDraft, startTime, endTime }) {
     const [isCopied, setIsCopied] = useState(false);
 
@@ -69,11 +78,11 @@ export default function Stage4({ correctedDraft, startTime, endTime }) {
                 </div>
                 <div className="corrected-draft-text markdown-content">
                     <ThinkBlockRenderer
-                        content={
+                        content={highlightRevisionMarkers(
                             typeof correctedDraft?.response === 'string'
                                 ? correctedDraft.response
                                 : String(correctedDraft?.response || 'No corrected draft generated.')
-                        }
+                        )}
                     />
                 </div>
             </div>
