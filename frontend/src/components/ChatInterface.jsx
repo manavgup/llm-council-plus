@@ -8,7 +8,7 @@ import Stage3, { Stage3Skeleton } from './Stage3';
 import CouncilGrid from './CouncilGrid';
 import ExecutionModeToggle from './ExecutionModeToggle';
 import RoundNavigator from './RoundNavigator';
-import { ClaimEvolution } from './ClaimCards';
+import { ClaimJourneyMap } from './ClaimCards';
 import Stage4, { Stage4Skeleton } from './Stage4';
 import { api } from '../api';
 import './ChatInterface.css';
@@ -226,11 +226,10 @@ export default function ChatInterface({
                                             />
                                         )}
 
-                                        {/* Claim Evolution (after Stage 3 when multi-round) */}
+                                        {/* Claim Journey Map (after Stage 3 when multi-round) */}
                                         {msg.rounds && msg.rounds.length > 1 && (
-                                            <ClaimEvolution
+                                            <ClaimJourneyMap
                                                 rounds={msg.rounds}
-                                                labelToModel={msg.metadata?.label_to_model}
                                             />
                                         )}
 

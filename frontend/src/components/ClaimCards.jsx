@@ -175,122 +175,244 @@ export function ClaimCardWithVerdicts({ claims, aggregatedVerdicts, labelToModel
 }
 
 /**
- * Claim Evolution: shows how claims changed across rounds.
+ * Claim Journey Map: swimlane visualization tracking each claim across rounds.
+ * Replaces the old ClaimEvolution aggregate bars with individual claim trajectories.
  */
-export function ClaimEvolution({ rounds, labelToModel: finalLabelToModel }) {
+export function ClaimJourneyMap({ rounds }) {
+  const [expandedClaim, setExpandedClaim] = useState(null);
+  const [filter, setFilter] = useState('all');
+
   if (!rounds || rounds.length < 2) return null;
 
-  // Build claim data per round
+  // Build per-round metadata (claim-mode rounds only)
   const roundData = rounds.map(rd => {
     const meta = rd.metadata || {};
     const claims = meta.canonical_claims || {};
     const verdicts = meta.aggregate_claim_verdicts || {};
     const l2m = meta.label_to_model || {};
+    const stage2 = rd.stage2 || [];
     const totalClaims = Object.values(claims).reduce((sum, arr) => sum + arr.length, 0);
-    const strong = Object.values(verdicts).filter(v => v.majority_verdict === 'strong').length;
-    const contested = Object.values(verdicts).filter(v => v.majority_verdict && v.majority_verdict !== 'strong');
-    return { round: rd.round_number, claims, verdicts, l2m, totalClaims, strong, contested, mode: rd.critique_mode };
+    return {
+      round: rd.round_number,
+      claims, verdicts, l2m, stage2, totalClaims,
+      mode: meta.critique_mode || rd.critique_mode,
+    };
   }).filter(rd => rd.mode === 'claim' && rd.totalClaims > 0);
 
   if (roundData.length < 1) return null;
 
-  // Find claims that were contested in any round
-  const contestedAcrossRounds = [];
+  // Collect all unique claim IDs across all rounds, preserving first-seen order
+  const claimMap = new Map(); // claimId -> { id, claim, sourceLabel, sourceModel }
   for (const rd of roundData) {
-    for (const cv of rd.contested) {
-      // Find which claim this is
-      for (const [label, claimList] of Object.entries(rd.claims)) {
-        for (const claim of claimList) {
-          const vi = rd.verdicts[claim.id];
-          if (vi && vi.majority_verdict !== 'strong') {
-            contestedAcrossRounds.push({
-              ...claim,
-              sourceLabel: label,
-              round: rd.round,
-              verdict: vi.majority_verdict,
-              agreement: vi.agreement,
-            });
-          }
+    for (const [label, claimList] of Object.entries(rd.claims)) {
+      for (const claim of claimList) {
+        if (!claimMap.has(claim.id)) {
+          claimMap.set(claim.id, {
+            id: claim.id,
+            claim: claim.claim,
+            sourceLabel: label,
+            sourceModel: rd.l2m[label] || label,
+          });
         }
       }
     }
   }
 
-  // Deduplicate by claim ID + round
-  const seen = new Set();
-  const uniqueContested = contestedAcrossRounds.filter(c => {
-    const key = `${c.id}-${c.round}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+  // Build per-claim trajectory: verdict at each round + evaluator details
+  const claimTrajectories = [];
+  for (const [claimId, claimInfo] of claimMap) {
+    const verdicts = []; // one entry per round
+    for (const rd of roundData) {
+      const vi = rd.verdicts[claimId];
+      // Collect per-evaluator verdicts from stage2 results
+      const evaluatorVerdicts = [];
+      for (const result of rd.stage2) {
+        const cv = result.claim_verdicts?.[claimId];
+        if (cv) {
+          evaluatorVerdicts.push({
+            model: result.model,
+            verdict: cv.verdict,
+            reason: cv.reason,
+          });
+        }
+      }
+      verdicts.push({
+        round: rd.round,
+        majority: vi?.majority_verdict || null,
+        agreement: vi?.agreement,
+        evaluators: evaluatorVerdicts,
+      });
+    }
+
+    // Determine outcome
+    const firstVerdict = verdicts[0]?.majority;
+    const lastVerdict = verdicts[verdicts.length - 1]?.majority;
+    const allStrong = verdicts.every(v => v.majority === 'strong');
+    const endedStrong = lastVerdict === 'strong';
+    let outcome;
+    if (allStrong) outcome = 'stable';
+    else if (endedStrong) outcome = 'resolved';
+    else outcome = 'persistent';
+
+    // Did verdicts change across rounds?
+    const changed = !verdicts.every(v => v.majority === firstVerdict);
+
+    claimTrajectories.push({ ...claimInfo, verdicts, outcome, changed });
+  }
+
+  // Apply filter
+  const filtered = claimTrajectories.filter(ct => {
+    if (filter === 'changed') return ct.changed;
+    if (filter === 'contested') return ct.outcome === 'persistent';
     return true;
   });
 
+  const verdictAbbrev = (v) => {
+    if (v === 'strong') return 'STR';
+    if (v === 'weak') return 'WK';
+    if (v === 'flawed') return 'FLW';
+    return '—';
+  };
+
+  const handleDoubleClick = (claimId) => {
+    setExpandedClaim(expandedClaim === claimId ? null : claimId);
+  };
+
   return (
-    <div className="claim-evolution">
-      <div className="claim-evolution-header">
-        <span className="claim-evolution-icon">📊</span>
-        <span className="claim-evolution-title">Claim Evolution Across Rounds</span>
+    <div className="journey-map">
+      {/* Header */}
+      <div className="journey-header">
+        <div className="journey-title">
+          <div className="journey-title-icon">📊</div>
+          <div>
+            <div className="journey-title-text">Claim Evolution Across Rounds</div>
+            <div className="journey-title-sub">
+              Track how each claim&rsquo;s verdict changed through deliberation
+            </div>
+          </div>
+        </div>
+        <div className="journey-filters">
+          {['all', 'changed', 'contested'].map(f => (
+            <button
+              key={f}
+              className={`journey-filter ${filter === f ? 'active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Round-by-round summary */}
-      <div className="claim-evolution-rounds">
-        {roundData.map((rd, i) => (
-          <div key={rd.round} className="claim-evolution-round">
-            <div className="evolution-round-header">
-              <span className="evolution-round-badge">Round {rd.round}</span>
-              <span className="evolution-round-stats">
-                {rd.totalClaims} claims
-              </span>
-            </div>
-            <div className="evolution-bar-container">
-              <div
-                className="evolution-bar strong"
-                style={{ width: `${(rd.strong / rd.totalClaims) * 100}%` }}
-              >
-                {rd.strong} strong
+      {/* Column headers */}
+      <div
+        className="journey-round-headers"
+        style={{ gridTemplateColumns: `220px repeat(${roundData.length}, 1fr) 110px` }}
+      >
+        <span className="journey-col-label">Claim</span>
+        {roundData.map(rd => (
+          <span key={rd.round} className="journey-col-label">Round {rd.round}</span>
+        ))}
+        <span className="journey-col-label">Outcome</span>
+      </div>
+
+      {/* Claim lanes */}
+      <div className="journey-lanes">
+        {filtered.map(ct => (
+          <div key={ct.id}>
+            {/* Lane row */}
+            <div
+              className={`journey-lane ${ct.outcome === 'persistent' ? 'persistent-bg' : ''} ${expandedClaim === ct.id ? 'expanded' : ''}`}
+              style={{ gridTemplateColumns: `220px repeat(${roundData.length}, 1fr) 110px` }}
+              onDoubleClick={() => handleDoubleClick(ct.id)}
+            >
+              <div className="lane-claim">
+                <span className="lane-claim-id">{ct.id}</span>
+                <span className="lane-claim-text">&ldquo;{ct.claim}&rdquo;</span>
+                <span className="lane-claim-source">{getShortModelName(ct.sourceModel)}</span>
               </div>
-              {rd.contested.length > 0 && (
-                <div
-                  className="evolution-bar contested"
-                  style={{ width: `${(rd.contested.length / rd.totalClaims) * 100}%` }}
-                >
-                  {rd.contested.length} contested
+              {ct.verdicts.map((v, i) => (
+                <div key={i} className="lane-round-cell">
+                  <div
+                    className={`verdict-node ${v.majority || 'empty'}`}
+                    title={v.majority ? `${v.majority} (${Math.round((v.agreement || 0) * 100)}% agreement)` : 'No verdict'}
+                  >
+                    {verdictAbbrev(v.majority)}
+                  </div>
                 </div>
-              )}
+              ))}
+              <div className="lane-outcome">
+                {ct.outcome === 'resolved' && <span className="outcome-trend">✨</span>}
+                <span className={`outcome-badge ${ct.outcome}`}>
+                  {ct.outcome.charAt(0).toUpperCase() + ct.outcome.slice(1)}
+                </span>
+              </div>
             </div>
-            {i < roundData.length - 1 && (
-              <div className="evolution-arrow">↓</div>
+
+            {/* Expanded detail (full claim text + per-evaluator verdicts) */}
+            {expandedClaim === ct.id && (
+              <div className="lane-detail visible">
+                <div className="lane-detail-claim-full">
+                  <div className="lane-detail-claim-full-header">
+                    <span className="lane-detail-claim-full-id">Claim {ct.id}</span>
+                    <span className="lane-detail-claim-full-source">
+                      Source: {getShortModelName(ct.sourceModel)}
+                    </span>
+                  </div>
+                  <div className="lane-detail-claim-full-text">
+                    &ldquo;{ct.claim}&rdquo;
+                  </div>
+                </div>
+                <div className="lane-detail-grid">
+                  {ct.verdicts.map((v, i) => (
+                    <div key={i} className="lane-detail-round">
+                      <div className="detail-round-label">
+                        Round {v.round}
+                        <span className={`detail-verdict ${v.majority || 'unknown'}`}>
+                          {(v.majority || 'N/A').toUpperCase()}
+                        </span>
+                      </div>
+                      {v.evaluators.length > 0 ? (
+                        <div className="detail-evaluators">
+                          {v.evaluators.map((ev, j) => (
+                            <div key={j} className="detail-evaluator">
+                              <span className="detail-ev-model">
+                                {getShortModelName(ev.model)}
+                              </span>
+                              <span className={`detail-ev-verdict ${ev.verdict}`}>
+                                {ev.verdict}
+                              </span>
+                              {ev.reason && (
+                                <span className="detail-ev-reason">{ev.reason}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="detail-evaluators">
+                          <span className="detail-ev-reason">No evaluator data available</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         ))}
+
+        {filtered.length === 0 && (
+          <div className="journey-empty">
+            No claims match the selected filter.
+          </div>
+        )}
       </div>
-
-      {/* Contested claims detail */}
-      {uniqueContested.length > 0 && (
-        <div className="claim-evolution-contested">
-          <div className="evolution-contested-label">Claims That Were Contested</div>
-          {uniqueContested.map((claim) => (
-            <div key={`${claim.id}-${claim.round}`} className="evolution-contested-item">
-              <span className="evolution-claim-id">{claim.id}</span>
-              <span className="evolution-claim-round">R{claim.round}</span>
-              <span className={`evolution-claim-verdict ${claim.verdict}`}>
-                {claim.verdict?.toUpperCase()}
-              </span>
-              <span className="evolution-claim-text">&ldquo;{claim.claim}&rdquo;</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {uniqueContested.length === 0 && roundData.length >= 2 && (
-        <div className="claim-all-strong-banner" style={{ marginTop: '12px' }}>
-          <span className="check-icon">✓</span>
-          No claims were contested in any round. Full consensus across all evaluators.
-        </div>
-      )}
     </div>
   );
 }
+
+// Keep backward-compatible export name
+export { ClaimJourneyMap as ClaimEvolution };
 
 function ClaimCardDetailed({ claim, prominent }) {
   const [expanded, setExpanded] = useState(prominent);
