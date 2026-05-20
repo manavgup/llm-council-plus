@@ -141,11 +141,11 @@ export default function ChatInterface({
                                         )}
 
                                         {/* Deliberation Progress Rail */}
-                                        {msg.totalRounds > 1 && (
+                                        {(msg.totalRounds > 1 || msg.metadata?.debate_rounds_configured > 1) && (
                                           <RoundNavigator
                                             currentRound={msg.currentRound}
-                                            totalRounds={msg.totalRounds}
-                                            converged={msg.converged}
+                                            totalRounds={msg.totalRounds || msg.metadata?.debate_rounds_configured}
+                                            converged={msg.converged ?? msg.metadata?.converged}
                                             convergenceRound={msg.convergenceRound}
                                             rounds={msg.rounds}
                                           />
@@ -232,8 +232,8 @@ export default function ChatInterface({
                                         {msg.rounds && msg.rounds.length > 1 && (
                                             <ConvergenceDashboard
                                                 rounds={msg.rounds}
-                                                totalRounds={msg.totalRounds}
-                                                converged={msg.converged}
+                                                totalRounds={msg.totalRounds || msg.metadata?.debate_rounds_configured}
+                                                converged={msg.converged ?? msg.metadata?.converged}
                                             />
                                         )}
 
