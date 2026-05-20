@@ -139,13 +139,14 @@ export default function ChatInterface({
                                             />
                                         )}
 
-                                        {/* Round Navigator */}
+                                        {/* Deliberation Progress Rail */}
                                         {msg.totalRounds > 1 && (
                                           <RoundNavigator
                                             currentRound={msg.currentRound}
                                             totalRounds={msg.totalRounds}
                                             converged={msg.converged}
                                             convergenceRound={msg.convergenceRound}
+                                            rounds={msg.rounds}
                                           />
                                         )}
 
