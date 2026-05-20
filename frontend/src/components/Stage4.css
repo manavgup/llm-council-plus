@@ -1,5 +1,5 @@
 /* ========================================
-   Stage 4: Corrected Draft
+   Stage 4: Enhanced Corrected Draft
    Council Chamber Theme — Purple accent
    ======================================== */
 
@@ -16,97 +16,326 @@
   font-size: 18px;
 }
 
-.stage-4-description {
-  font-family: var(--font-ui);
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-  line-height: 1.5;
-}
+/* --- Corrected Draft Section (glass container) --- */
 
-.corrected-draft-response {
+.corrected-draft-section {
   background: var(--bg-card);
   border: 1px solid rgba(168, 85, 247, 0.2);
-  border-left: 4px solid var(--accent-stage4);
-  border-radius: 12px;
-  padding: 24px;
-  position: relative;
+  border-radius: 16px;
   backdrop-filter: blur(12px);
-  box-shadow: 0 0 40px rgba(168, 85, 247, 0.04), var(--shadow-soft);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(168, 85, 247, 0.04), var(--shadow-soft);
 }
 
-.corrected-draft-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-glass);
-}
+/* --- Banner --- */
 
-.corrected-draft-identity {
+.draft-banner {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(251, 191, 36, 0.06) 100%);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.12);
 }
 
-.corrected-draft-avatar {
-  width: 44px;
-  height: 44px;
+.draft-banner-avatar {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 24px;
   flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
 }
 
-.corrected-draft-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.draft-banner-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.corrected-draft-role {
+.draft-banner-title {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 800;
+  font-size: 17px;
   color: var(--accent-stage4);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.corrected-draft-model {
+.draft-banner-subtitle {
   font-family: var(--font-ui);
   font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.draft-banner-model {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px 14px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.draft-copy-btn {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  background: rgba(168, 85, 247, 0.08);
+  color: var(--accent-stage4);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.draft-copy-btn:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.draft-copy-btn.copied {
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--verdict-strong);
+  background: var(--verdict-strong-dim);
+}
+
+/* --- Stats Bar --- */
+
+.draft-stats-bar {
+  display: flex;
+  gap: 20px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid var(--border-glass);
+  flex-wrap: wrap;
+}
+
+.draft-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.draft-stat-value {
+  font-weight: 700;
   color: var(--text-secondary);
 }
 
-.corrected-draft-provider-badge {
-  font-family: var(--font-code);
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
+/* --- Document Body --- */
 
-.corrected-draft-text {
+.draft-document {
+  padding: 28px 24px;
   font-family: var(--font-content);
   font-size: 15px;
-  line-height: 1.75;
+  line-height: 1.8;
 }
 
-/* --- [REVISED] and [NEW] inline badges --- */
-.corrected-draft-text .revised-badge,
-.corrected-draft-text .new-badge {
+/* --- Inline Revision Markers --- */
+
+.marker-revised {
   display: inline;
   font-family: var(--font-code);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 4px;
   vertical-align: middle;
-  margin: 0 2px;
+  margin: 0 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.marker-new {
+  display: inline;
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin: 0 4px;
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.revised-text {
+  background: rgba(245, 158, 11, 0.06);
+  border-bottom: 1px dashed rgba(245, 158, 11, 0.3);
+  padding-bottom: 1px;
+}
+
+.new-text {
+  background: rgba(34, 197, 94, 0.06);
+  border-bottom: 1px dashed rgba(34, 197, 94, 0.3);
+  padding-bottom: 1px;
+}
+
+/* --- Claims Addressed Footer --- */
+
+.draft-claims-footer {
+  border-top: 1px solid var(--border-glass);
+}
+
+.draft-claims-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  color: var(--accent-stage4);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.draft-claims-toggle:hover {
+  background: rgba(168, 85, 247, 0.04);
+}
+
+.toggle-icon {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 14px;
+}
+
+.draft-claims-toggle-text {
+  flex: 1;
+}
+
+.draft-claims-count {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.draft-claims-list {
+  padding: 0 24px 20px;
+}
+
+/* --- Claim Reference Row --- */
+
+.claim-ref {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.claim-ref:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.claim-ref-id {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 28px;
+}
+
+.claim-ref-id.strong { color: var(--verdict-strong); }
+.claim-ref-id.weak { color: var(--verdict-weak); }
+.claim-ref-id.flawed { color: var(--verdict-flawed); }
+
+.claim-ref-action {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 5px;
+  min-width: 65px;
+  text-align: center;
+}
+
+.claim-ref-action.revised {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.claim-ref-action.kept {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.claim-ref-action.added {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.claim-ref-text {
+  font-family: var(--font-content);
+  color: var(--text-muted);
+  flex: 1;
+  font-style: italic;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 768px) {
+  .draft-banner {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  .draft-banner-model { order: 5; }
+
+  .draft-stats-bar {
+    gap: 12px;
+    padding: 10px 18px;
+  }
+
+  .draft-document {
+    padding: 20px 18px;
+  }
+
+  .draft-claims-toggle {
+    padding: 12px 18px;
+  }
+
+  .draft-claims-list {
+    padding: 0 18px 16px;
+  }
+
+  .claim-ref {
+    gap: 8px;
+  }
 }
