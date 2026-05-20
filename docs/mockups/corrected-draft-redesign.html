@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corrected Draft — Redesign Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-dark: #0c1222;
+  --bg-darker: #060a12;
+  --bg-card: rgba(12, 18, 34, 0.72);
+  --text-primary: #f0f4f8;
+  --text-secondary: #9ca8b8;
+  --text-muted: #5c6b7c;
+  --accent-primary: #3b82f6;
+  --accent-stage4: #a855f7;
+  --accent-chairman: #fbbf24;
+  --verdict-strong: #22c55e;
+  --verdict-strong-dim: rgba(34, 197, 94, 0.12);
+  --verdict-weak: #eab308;
+  --verdict-weak-dim: rgba(234, 179, 8, 0.12);
+  --verdict-flawed: #ef4444;
+  --verdict-flawed-dim: rgba(239, 68, 68, 0.12);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --font-display: 'Syne', sans-serif;
+  --font-ui: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-content: 'Source Serif 4', Georgia, serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-ui);
+  background-color: var(--bg-darker);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    linear-gradient(180deg, #0c1222 0%, #0f172a 40%, #0a0f1a 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 40px 24px;
+  -webkit-font-smoothing: antialiased;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+.mockup-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.mockup-header { text-align: center; margin-bottom: 40px; }
+.mockup-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent-stage4) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.mockup-header p { color: var(--text-muted); font-size: 14px; }
+.mockup-label {
+  display: inline-block;
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-stage4);
+  background: rgba(168, 85, 247, 0.12);
+  padding: 4px 14px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+/* Comparison labels */
+.compare-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 6px 16px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+.compare-label.before { background: rgba(239, 68, 68, 0.1); color: var(--verdict-flawed); }
+.compare-label.after { background: var(--verdict-strong-dim); color: var(--verdict-strong); }
+
+hr.divider { border: none; border-top: 1px solid var(--border-glass); margin: 40px 0; }
+
+/* ========================================
+   CURRENT Stage 4 (simplified recreation)
+   ======================================== */
+.current-stage4 {
+  border-top: 2px solid var(--accent-stage4);
+  padding-top: 16px;
+}
+.current-stage4 .stage-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.current-stage4 .stage-desc {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.current-draft-box {
+  background: var(--bg-card);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-left: 4px solid var(--accent-stage4);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+}
+.current-draft-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-glass);
+}
+.current-draft-identity { display: flex; align-items: center; gap: 12px; }
+.current-draft-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent-stage4);
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.current-draft-info { display: flex; flex-direction: column; gap: 2px; }
+.current-draft-role { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--accent-stage4); }
+.current-draft-model { font-family: var(--font-ui); font-size: 12px; color: var(--text-secondary); }
+.current-body {
+  font-family: var(--font-content);
+  font-size: 15px;
+  line-height: 1.75;
+  color: #e2e8f0;
+}
+.current-body p { margin-bottom: 12px; }
+.current-body .marker { font-weight: 700; }
+.current-body .marker.rev { color: #f59e0b; }
+.current-body .marker.new { color: var(--verdict-strong); }
+.annotation {
+  padding: 10px 14px; border-radius: 8px;
+  font-family: var(--font-ui); font-size: 12px; margin-bottom: 8px;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.annotation.problem { background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.15); color: var(--text-secondary); }
+.annotation.solution { background: rgba(34, 197, 94, 0.06); border: 1px solid rgba(34, 197, 94, 0.15); color: var(--text-secondary); }
+.annotation-icon { font-size: 14px; flex-shrink: 0; line-height: 1.3; }
+
+/* ========================================
+   NEW Enhanced Corrected Draft
+   ======================================== */
+.enhanced-draft {
+  background: var(--bg-card);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(168, 85, 247, 0.04);
+}
+
+/* Banner */
+.draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(251, 191, 36, 0.06) 100%);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.12);
+}
+.draft-banner-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-stage4), var(--accent-chairman));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+}
+.draft-banner-info { flex: 1; }
+.draft-banner-title {
+  font-family: var(--font-display); font-weight: 800; font-size: 17px;
+  color: var(--accent-stage4);
+  display: flex; align-items: center; gap: 8px;
+}
+.draft-banner-subtitle {
+  font-family: var(--font-ui); font-size: 13px; color: var(--text-muted);
+  margin-top: 3px; line-height: 1.4;
+}
+.draft-banner-model {
+  font-family: var(--font-code); font-size: 11px; color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px 14px; border-radius: 6px; flex-shrink: 0;
+}
+.draft-copy-btn {
+  font-family: var(--font-code); font-size: 11px; font-weight: 600;
+  padding: 8px 16px; border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  background: rgba(168, 85, 247, 0.08);
+  color: var(--accent-stage4); cursor: pointer;
+  transition: all 0.15s; flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+}
+.draft-copy-btn:hover { background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); }
+
+/* Stats bar */
+.draft-stats-bar {
+  display: flex; gap: 20px; padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid var(--border-glass);
+  flex-wrap: wrap;
+}
+.draft-stat {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-code); font-size: 11px; color: var(--text-muted);
+}
+.draft-stat-value { font-weight: 700; color: var(--text-secondary); }
+
+/* Document body */
+.draft-document {
+  padding: 28px 24px;
+  font-family: var(--font-content); font-size: 15px;
+  line-height: 1.8; color: #e2e8f0;
+}
+.draft-document h2 {
+  font-family: var(--font-display); font-size: 18px; font-weight: 700;
+  color: var(--text-primary); margin: 24px 0 12px;
+}
+.draft-document h2:first-child { margin-top: 0; }
+.draft-document p { margin-bottom: 12px; }
+
+/* Inline markers */
+.marker-revised {
+  display: inline; font-family: var(--font-code);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 4px;
+  vertical-align: middle; margin: 0 4px;
+  background: rgba(245, 158, 11, 0.15); color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.marker-new {
+  display: inline; font-family: var(--font-code);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 4px;
+  vertical-align: middle; margin: 0 4px;
+  background: var(--verdict-strong-dim); color: var(--verdict-strong);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+.revised-text {
+  background: rgba(245, 158, 11, 0.06);
+  border-bottom: 1px dashed rgba(245, 158, 11, 0.3);
+  padding-bottom: 1px;
+}
+.new-text {
+  background: rgba(34, 197, 94, 0.06);
+  border-bottom: 1px dashed rgba(34, 197, 94, 0.3);
+  padding-bottom: 1px;
+}
+
+/* Claims summary */
+.draft-claims-summary {
+  margin-top: 24px; padding-top: 20px;
+  border-top: 1px solid var(--border-glass);
+}
+.draft-claims-title {
+  font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  color: var(--accent-stage4); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.claim-ref {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+  font-size: 13px; transition: background 0.15s;
+}
+.claim-ref:hover { background: rgba(255, 255, 255, 0.02); }
+.claim-ref-id {
+  font-family: var(--font-code); font-size: 11px; font-weight: 700; min-width: 28px;
+}
+.claim-ref-action {
+  font-family: var(--font-code); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 3px 10px; border-radius: 5px; min-width: 65px; text-align: center;
+}
+.claim-ref-action.revised { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.claim-ref-action.kept { background: rgba(255, 255, 255, 0.04); color: var(--text-muted); }
+.claim-ref-action.added { background: var(--verdict-strong-dim); color: var(--verdict-strong); }
+.claim-ref-text {
+  font-family: var(--font-content); color: var(--text-muted);
+  flex: 1; font-style: italic; line-height: 1.4;
+}
+
+/* Side-by-side comparison layout */
+.side-by-side { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+@media (max-width: 768px) { .side-by-side { grid-template-columns: 1fr; gap: 24px; } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .draft-banner { flex-wrap: wrap; gap: 12px; }
+  .draft-banner-model { order: 5; }
+  .draft-stats-bar { gap: 12px; }
+}
+</style>
+</head>
+
+<body>
+<div class="mockup-wrapper">
+
+  <div class="mockup-header">
+    <span class="mockup-label">Design Mockup</span>
+    <h1>Stage 4: Corrected Draft — Redesign</h1>
+    <p>Before / after comparison of the chairman's corrected document</p>
+  </div>
+
+  <!-- ============================================
+       BEFORE / AFTER SIDE BY SIDE
+       ============================================ -->
+  <div class="side-by-side">
+
+    <!-- BEFORE: Current Stage 4 -->
+    <div>
+      <span class="compare-label before">Current Design</span>
+      <div class="current-stage4">
+        <div class="stage-title">&#x1F4DD; Stage 4: Corrected Draft</div>
+        <div class="stage-desc">
+          The chairman has rewritten the original document incorporating all corrections.
+          Changes are marked with <strong>[REVISED]</strong> or <strong>[NEW]</strong>.
+        </div>
+        <div class="current-draft-box">
+          <div class="current-draft-header">
+            <div class="current-draft-identity">
+              <div class="current-draft-avatar">&#x1F916;</div>
+              <div class="current-draft-info">
+                <div class="current-draft-role">&#x1F4DD; Corrected Draft</div>
+                <div class="current-draft-model">claude-opus-4</div>
+              </div>
+            </div>
+          </div>
+          <div class="current-body">
+            <p><span class="marker rev">&#x1F536; REVISED:</span> <em>Canadian data sovereignty regulations require that Protected B and above classified government data be stored within Canadian borders...</em></p>
+            <p>Multi-cloud strategies reduce vendor lock-in risk by 40-60%...</p>
+            <p><span class="marker new">&#x1F7E2; NEW:</span> <em>For stateful workloads requiring sovereign multi-region resilience, organizations should implement application-level consistency patterns...</em></p>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="annotation problem">
+            <span class="annotation-icon">&#x26A0;</span>
+            <div><strong>Markers are inline text only</strong> — bold emoji markers work but lack visual structure. Hard to scan a long document for changes.</div>
+          </div>
+          <div class="annotation problem">
+            <span class="annotation-icon">&#x26A0;</span>
+            <div><strong>No stats bar</strong> — user can't see at a glance how many revisions were applied or how many sections are new.</div>
+          </div>
+          <div class="annotation problem">
+            <span class="annotation-icon">&#x26A0;</span>
+            <div><strong>No claims cross-reference</strong> — no way to connect the corrected text back to the specific claims that were fixed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER: What we're improving -->
+    <div>
+      <span class="compare-label after">Proposed Redesign</span>
+      <div style="margin-top: 24px;">
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Gradient banner</strong> with chairman avatar, model name, and prominent Copy button.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Stats bar</strong> showing counts: revisions applied, new sections added, claims flagged. Parsed from [REVISED] and [NEW] markers in the response text.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Styled inline markers</strong> — [REVISED] becomes a pill badge with amber background + dashed underline on the revised text. [NEW] gets green styling. Much easier to scan.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Claims Addressed summary</strong> — a collapsible footer mapping each claim ID to what action was taken (Revised / Kept / New). Built from the rounds' claim data, linking back to the Journey Map.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Enhanced copy</strong> — copies clean text without marker tags.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ============================================
+       THE REDESIGNED COMPONENT
+       ============================================ -->
+
+  <div class="enhanced-draft">
+    <div class="draft-banner">
+      <div class="draft-banner-avatar">&#x1F4DD;</div>
+      <div class="draft-banner-info">
+        <div class="draft-banner-title">
+          <span>&#x1F451;</span> Chairman's Corrected Draft
+        </div>
+        <div class="draft-banner-subtitle">
+          The chairman has rewritten the document incorporating all corrections from 3 rounds of deliberation.
+          Changes are marked with <span class="marker-revised">Revised</span> and <span class="marker-new">New</span> inline.
+        </div>
+      </div>
+      <span class="draft-banner-model">claude-opus-4</span>
+      <button class="draft-copy-btn" onclick="this.textContent='Copied!'; setTimeout(() => this.innerHTML='&#x1F4CB; Copy Draft', 2000)">
+        &#x1F4CB; Copy Draft
+      </button>
+    </div>
+
+    <div class="draft-stats-bar">
+      <div class="draft-stat">
+        <span>&#x1F527;</span>
+        <span class="draft-stat-value">5</span> revisions
+      </div>
+      <div class="draft-stat">
+        <span>&#x2795;</span>
+        <span class="draft-stat-value">2</span> new sections
+      </div>
+      <div class="draft-stat">
+        <span>&#x26A0;</span>
+        <span class="draft-stat-value">2</span> persistent claims flagged
+      </div>
+    </div>
+
+    <div class="draft-document">
+      <h2>Cloud Sovereignty Strategy for Canadian Government Workloads</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">Canadian data sovereignty regulations require that Protected B and above classified government data
+        be stored and processed within Canadian borders, in accordance with the Treasury Board Directive on
+        Security Management and applicable provincial privacy legislation.</span>
+        This framework applies to federal departments handling sensitive personal information,
+        national security data, and classified communications.
+      </p>
+
+      <p>
+        Multi-cloud strategies reduce vendor lock-in risk by 40-60%, according to Gartner and Forrester
+        research. Organizations operating across two or more cloud providers reported significantly higher
+        flexibility in contract renegotiation and workload portability assessments.
+      </p>
+
+      <h2>Performance and Latency Considerations</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">For typical CRUD operations and batch processing workloads, the additional 2-5ms latency
+        introduced by in-country sovereign cloud routing is well within acceptable bounds. However,
+        high-frequency trading, real-time streaming, and latency-sensitive ML inference applications
+        may experience meaningful degradation</span> and should be evaluated on a case-by-case basis.
+      </p>
+
+      <h2>Multi-Region Resilience</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">Kubernetes federation provides multi-region failover capabilities for stateless workloads,
+        handling DNS-based routing and replica scheduling across clusters. However, stateful applications
+        require application-level awareness for state management.</span>
+      </p>
+
+      <p>
+        <span class="marker-new">New</span>
+        <span class="new-text">For stateful workloads requiring sovereign multi-region resilience, organizations should implement
+        application-level consistency patterns (e.g., CRDTs, saga orchestration) alongside infrastructure
+        federation, rather than relying solely on Kubernetes federation capabilities.</span>
+      </p>
+
+      <h2>AI and NLP Workloads</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">Open-source LLMs such as LLaMA-3 and Mistral have demonstrated competitive performance on
+        standard NLP benchmarks for summarization, classification, and entity extraction. However, they
+        do not yet match proprietary models on complex multi-step reasoning and safety-critical applications.</span>
+      </p>
+
+      <p>
+        <span class="marker-new">New</span>
+        <span class="new-text">A recommended approach is to deploy open-source models for well-defined, lower-risk NLP tasks
+        while retaining proprietary model access through API gateways with data-residency controls
+        for complex analytical tasks requiring higher accuracy guarantees.</span>
+      </p>
+
+      <!-- Claims Addressed Summary -->
+      <div class="draft-claims-summary">
+        <div class="draft-claims-title">
+          <span>&#x1F4CB;</span> Claims Addressed in This Draft
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--verdict-strong);">A1</span>
+          <span class="claim-ref-action revised">Revised</span>
+          <span class="claim-ref-text">Scoped to Protected B+ classified data per Treasury Board Directive</span>
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--text-muted);">A2</span>
+          <span class="claim-ref-action kept">Kept</span>
+          <span class="claim-ref-text">Multi-cloud vendor lock-in figures maintained (strong consensus)</span>
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--verdict-strong);">B1</span>
+          <span class="claim-ref-action revised">Revised</span>
+          <span class="claim-ref-text">Added workload-type qualifications for latency claims</span>
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--verdict-weak);">C1</span>
+          <span class="claim-ref-action revised">Revised</span>
+          <span class="claim-ref-text">Scoped K8s federation to stateless workloads; added caveat for stateful</span>
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--verdict-flawed);">D1</span>
+          <span class="claim-ref-action revised">Revised</span>
+          <span class="claim-ref-text">Replaced blanket parity claim with task-specific assessment guidance</span>
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--verdict-strong);">+</span>
+          <span class="claim-ref-action added">New</span>
+          <span class="claim-ref-text">Added stateful workload resilience patterns (CRDTs, sagas)</span>
+        </div>
+
+        <div class="claim-ref">
+          <span class="claim-ref-id" style="color: var(--verdict-strong);">+</span>
+          <span class="claim-ref-action added">New</span>
+          <span class="claim-ref-text">Added hybrid OSS/proprietary model deployment recommendation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -253,6 +253,7 @@ export default function ChatInterface({
                                                 correctedDraft={msg.stage4 || msg.metadata?.stage4}
                                                 startTime={msg.timers?.stage4Start}
                                                 endTime={msg.timers?.stage4End}
+                                                rounds={msg.rounds}
                                             />
                                         )}
 
