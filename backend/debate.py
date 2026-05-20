@@ -1,6 +1,7 @@
 """Iterative debate orchestration: round loops, convergence, helpers."""
 
 import math
+import re
 import asyncio
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -309,12 +310,34 @@ def _select_top_paragraphs_from_others(
 
 
 def _parse_claim_verdicts_from_ranking(ranking_text: str) -> Optional[Dict[str, Dict[str, str]]]:
-    """Extract claim verdict JSON from a Stage 2 ranking response."""
+    """Extract claim verdict JSON from a Stage 2 ranking response.
+
+    Looks for <claim_verdicts>...</claim_verdicts> XML tags first,
+    then falls back to extract_json_block as a safety net.
+    """
+    import json as _json
     from .json_repair import extract_json_block
     if not ranking_text:
         return None
-    result = extract_json_block(ranking_text)
-    if isinstance(result, dict):
+
+    result = None
+
+    # Primary: look for <claim_verdicts> XML tags
+    xml_match = re.search(r'<claim_verdicts>\s*(.*?)\s*</claim_verdicts>', ranking_text, re.DOTALL)
+    if xml_match:
+        inner = xml_match.group(1).strip()
+        # Try direct parse of XML-tagged content
+        try:
+            result = _json.loads(inner)
+        except _json.JSONDecodeError:
+            # Try extract_json_block on just the inner content
+            result = extract_json_block(inner)
+
+    # Fallback: extract_json_block on the full text
+    if result is None:
+        result = extract_json_block(ranking_text)
+
+    if isinstance(result, dict) and result:
         # Validate it looks like claim verdicts {id: {verdict, reason}}
         if all(isinstance(v, dict) and "verdict" in v for v in result.values()):
             return result
@@ -400,7 +423,7 @@ async def run_iterative_debate(
             if search_context:
                 search_block = STAGE1_SEARCH_CONTEXT_TEMPLATE.format(search_context=search_context)
 
-            if effective_mode == "claim" and previous_canonical_claims and previous_aggregated_verdicts:
+            if effective_mode == "claim" and previous_canonical_claims is not None and previous_aggregated_verdicts is not None:
                 # Per-model personalized prompts for claim mode
                 models = models_override or get_council_models()
                 per_model_messages = {}

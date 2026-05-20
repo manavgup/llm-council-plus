@@ -165,14 +165,13 @@ STAGE2_CLAIM_PROMPT = """You are evaluating responses to: {user_query}
 These canonical claims have been extracted. Rate each one:
 {canonical_claims_text}
 
-Respond with valid JSON followed by your ranking:
+For each claim, provide a verdict (strong, weak, or flawed) and a one-sentence reason. Put your claim verdicts inside <claim_verdicts> XML tags as valid JSON:
 
-```json
-{{
-  "A1": {{"verdict": "strong", "reason": "one sentence"}},
-  "A2": {{"verdict": "flawed", "reason": "one sentence"}}
-}}
-```
+<claim_verdicts>
+{{"A1": {{"verdict": "strong", "reason": "one sentence"}}, "A2": {{"verdict": "flawed", "reason": "one sentence"}}}}
+</claim_verdicts>
+
+Then provide your ranking:
 
 FINAL RANKING:
 1. Response A
