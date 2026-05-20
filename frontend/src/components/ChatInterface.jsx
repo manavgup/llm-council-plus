@@ -8,6 +8,7 @@ import Stage3, { Stage3Skeleton } from './Stage3';
 import CouncilGrid from './CouncilGrid';
 import ExecutionModeToggle from './ExecutionModeToggle';
 import RoundNavigator from './RoundNavigator';
+import ConvergenceDashboard from './ConvergenceDashboard';
 import { ClaimJourneyMap } from './ClaimCards';
 import Stage4, { Stage4Skeleton } from './Stage4';
 import { api } from '../api';
@@ -224,6 +225,15 @@ export default function ChatInterface({
                                                 finalResponse={msg.stage3}
                                                 startTime={msg.timers?.stage3Start}
                                                 endTime={msg.timers?.stage3End}
+                                            />
+                                        )}
+
+                                        {/* Convergence Dashboard (after Stage 3 when multi-round) */}
+                                        {msg.rounds && msg.rounds.length > 1 && (
+                                            <ConvergenceDashboard
+                                                rounds={msg.rounds}
+                                                totalRounds={msg.totalRounds}
+                                                converged={msg.converged}
                                             />
                                         )}
 
