@@ -124,18 +124,11 @@ CLAIM_EXTRACTION_PROMPT = """Decompose each response into individual claims (spe
 
 {responses_text}
 
-Respond with ONLY valid JSON (no other text):
-```json
-{{
-  "Response A": [
-    {{"id": "A1", "claim": "specific falsifiable statement"}},
-    {{"id": "A2", "claim": "another statement"}}
-  ],
-  "Response B": [
-    {{"id": "B1", "claim": "statement"}}
-  ]
-}}
-```"""
+Respond with ONLY valid JSON inside <claims> tags. The JSON must be an object where each key is a response label and the value is a list of claims:
+
+<claims>
+{{"Response A": [{{"id": "A1", "claim": "specific falsifiable statement"}}, {{"id": "A2", "claim": "another statement"}}], "Response B": [{{"id": "B1", "claim": "statement"}}]}}
+</claims>"""
 
 STAGE2_PARAGRAPH_PROMPT = """You are evaluating responses to: {user_query}
 

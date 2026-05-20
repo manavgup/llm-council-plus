@@ -113,7 +113,21 @@ async def extract_canonical_claims(
         return None
 
     content = response.get("content", "")
-    result = extract_json_block(content)
+
+    # Primary: look for <claims> XML tags
+    import json as _json
+    result = None
+    xml_match = re.search(r'<claims>\s*(.*?)\s*</claims>', content, re.DOTALL)
+    if xml_match:
+        inner = xml_match.group(1).strip()
+        try:
+            result = _json.loads(inner)
+        except _json.JSONDecodeError:
+            result = extract_json_block(inner)
+
+    # Fallback: extract_json_block on the full text
+    if result is None:
+        result = extract_json_block(content)
 
     # Validate shape: must be {label: [{id, claim}]}
     if not isinstance(result, dict):
