@@ -1,0 +1,174 @@
+/* ========================================
+   Convergence Dashboard
+   Radial ring + stat rows
+   ======================================== */
+
+.convergence-dashboard {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  align-items: center;
+  padding: 28px;
+  margin-top: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+/* --- Ring --- */
+
+.convergence-ring-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.convergence-ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.convergence-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.convergence-ring .ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 10;
+}
+
+.convergence-ring .ring-progress {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ring-center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.ring-pct {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--verdict-strong) 30%, #6ee7b7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.ring-pct-label {
+  font-family: var(--font-code);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* --- Stats --- */
+
+.convergence-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.convergence-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.conv-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.conv-stat-icon.strong-bg {
+  background: var(--verdict-strong-dim);
+}
+
+.conv-stat-icon.contested-bg {
+  background: var(--verdict-flawed-dim);
+}
+
+.conv-stat-icon.rounds-bg {
+  background: var(--accent-primary-dim);
+}
+
+.conv-stat-detail {
+  flex: 1;
+}
+
+.conv-stat-value {
+  font-family: var(--font-code);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.conv-stat-label {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Mini progress bar */
+.conv-mini-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.conv-mini-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Responsive: stack ring above stats --- */
+
+@media (max-width: 768px) {
+  .convergence-dashboard {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 20px;
+    padding: 24px 20px;
+  }
+
+  .convergence-ring {
+    width: 120px;
+    height: 120px;
+  }
+
+  .ring-pct {
+    font-size: 28px;
+  }
+
+  .convergence-stat-row {
+    text-align: left;
+  }
+}

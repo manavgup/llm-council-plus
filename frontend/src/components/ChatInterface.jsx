@@ -8,6 +8,7 @@ import Stage3, { Stage3Skeleton } from './Stage3';
 import CouncilGrid from './CouncilGrid';
 import ExecutionModeToggle from './ExecutionModeToggle';
 import RoundNavigator from './RoundNavigator';
+import ConvergenceDashboard from './ConvergenceDashboard';
 import { ClaimJourneyMap } from './ClaimCards';
 import Stage4, { Stage4Skeleton } from './Stage4';
 import { api } from '../api';
@@ -140,11 +141,11 @@ export default function ChatInterface({
                                         )}
 
                                         {/* Deliberation Progress Rail */}
-                                        {msg.totalRounds > 1 && (
+                                        {(msg.totalRounds > 1 || msg.metadata?.debate_rounds_configured > 1) && (
                                           <RoundNavigator
                                             currentRound={msg.currentRound}
-                                            totalRounds={msg.totalRounds}
-                                            converged={msg.converged}
+                                            totalRounds={msg.totalRounds || msg.metadata?.debate_rounds_configured}
+                                            converged={msg.converged ?? msg.metadata?.converged}
                                             convergenceRound={msg.convergenceRound}
                                             rounds={msg.rounds}
                                           />
@@ -224,6 +225,15 @@ export default function ChatInterface({
                                                 finalResponse={msg.stage3}
                                                 startTime={msg.timers?.stage3Start}
                                                 endTime={msg.timers?.stage3End}
+                                            />
+                                        )}
+
+                                        {/* Convergence Dashboard (after Stage 3 when multi-round) */}
+                                        {msg.rounds && msg.rounds.length > 1 && (
+                                            <ConvergenceDashboard
+                                                rounds={msg.rounds}
+                                                totalRounds={msg.totalRounds || msg.metadata?.debate_rounds_configured}
+                                                converged={msg.converged ?? msg.metadata?.converged}
                                             />
                                         )}
 
