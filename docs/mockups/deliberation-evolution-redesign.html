@@ -1,0 +1,2517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deliberation & Claim Evolution — Redesign Mockup</title>
+
+<!-- Fonts matching Council Chamber design system -->
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ========================================
+   Design System Tokens (matching index.css)
+   ======================================== */
+:root {
+  --bg-dark: #0c1222;
+  --bg-darker: #060a12;
+  --bg-card: rgba(12, 18, 34, 0.72);
+  --bg-sidebar: rgba(8, 12, 22, 0.92);
+  --text-primary: #f0f4f8;
+  --text-secondary: #9ca8b8;
+  --text-muted: #5c6b7c;
+  --accent-primary: #3b82f6;
+  --accent-primary-dim: rgba(59, 130, 246, 0.25);
+  --accent-stage1: #22d3ee;
+  --accent-stage2: #f59e0b;
+  --accent-stage3: #10b981;
+  --accent-chairman: #fbbf24;
+  --accent-chairman-dim: rgba(251, 191, 36, 0.2);
+  --accent-stage4: #a855f7;
+  --verdict-strong: #22c55e;
+  --verdict-strong-dim: rgba(34, 197, 94, 0.12);
+  --verdict-weak: #eab308;
+  --verdict-weak-dim: rgba(234, 179, 8, 0.12);
+  --verdict-flawed: #ef4444;
+  --verdict-flawed-dim: rgba(239, 68, 68, 0.12);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --shadow-glass: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --font-display: 'Syne', sans-serif;
+  --font-ui: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-content: 'Source Serif 4', Georgia, serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-ui);
+  background-color: var(--bg-darker);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(34, 211, 238, 0.06) 0%, transparent 45%),
+    linear-gradient(180deg, #0c1222 0%, #0f172a 40%, #0a0f1a 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 40px 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mockup-wrapper {
+  max-width: 920px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Mockup Header */
+.mockup-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.mockup-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.mockup-header p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.mockup-label {
+  display: inline-block;
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-stage4);
+  background: var(--accent-stage4);
+  background: rgba(168, 85, 247, 0.12);
+  padding: 4px 14px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+/* Section dividers */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border-glass);
+  margin: 48px 0;
+}
+
+.section-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-glass);
+}
+
+/* ========================================
+   1. DELIBERATION PROGRESS RAIL
+   (replaces the minimal RoundNavigator)
+   ======================================== */
+
+.deliberation-rail {
+  position: relative;
+  padding-left: 56px;
+}
+
+/* Vertical connecting line */
+.deliberation-rail::before {
+  content: '';
+  position: absolute;
+  left: 23px;
+  top: 28px;
+  bottom: 28px;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--accent-primary) 0%,
+    rgba(59, 130, 246, 0.3) 40%,
+    var(--verdict-strong) 100%
+  );
+  border-radius: 1px;
+}
+
+.rail-round {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.rail-round:last-child { margin-bottom: 0; }
+
+/* Round node on the rail */
+.rail-node {
+  position: absolute;
+  left: -56px;
+  top: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-code);
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.rail-node.completed {
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid var(--verdict-strong);
+  color: var(--verdict-strong);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+}
+
+.rail-node.active {
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  animation: node-pulse 2s ease-in-out infinite;
+}
+
+.rail-node.pending {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+}
+
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.35); }
+}
+
+/* Round card */
+.rail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.rail-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: var(--shadow-soft);
+}
+
+.rail-card.active-round {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.06);
+}
+
+.rail-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.rail-round-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rail-round-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.rail-round-duration {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Verdict vitals — micro stats */
+.rail-vitals {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.vital {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vital-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.vital-dot.strong { background: var(--verdict-strong); }
+.vital-dot.weak { background: var(--verdict-weak); }
+.vital-dot.flawed { background: var(--verdict-flawed); }
+
+.vital-num {
+  font-family: var(--font-code);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.vital-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Delta badge (what changed) */
+.rail-delta {
+  padding: 0 20px 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.delta-chip {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.delta-chip.resolved {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.delta-chip.new-contested {
+  background: var(--verdict-flawed-dim);
+  color: var(--verdict-flawed);
+}
+
+.delta-chip.upgraded {
+  background: var(--verdict-weak-dim);
+  color: var(--verdict-weak);
+}
+
+.delta-arrow { font-size: 10px; }
+
+/* Convergence indicator */
+.rail-convergence {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(34, 197, 94, 0.05);
+  border-top: 1px solid rgba(34, 197, 94, 0.1);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--verdict-strong);
+  font-weight: 600;
+}
+
+.convergence-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+
+/* ========================================
+   2. CONVERGENCE RING
+   (visual gauge of consensus level)
+   ======================================== */
+
+.convergence-dashboard {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  align-items: center;
+  padding: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.convergence-ring-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.convergence-ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.convergence-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.convergence-ring .ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 10;
+}
+
+.convergence-ring .ring-progress {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ring-center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.ring-pct {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--verdict-strong) 30%, #6ee7b7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+
+.ring-pct-label {
+  font-family: var(--font-code);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.convergence-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.convergence-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.conv-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.conv-stat-icon.strong-bg {
+  background: var(--verdict-strong-dim);
+}
+
+.conv-stat-icon.contested-bg {
+  background: var(--verdict-flawed-dim);
+}
+
+.conv-stat-icon.rounds-bg {
+  background: var(--accent-primary-dim);
+}
+
+.conv-stat-detail {
+  flex: 1;
+}
+
+.conv-stat-value {
+  font-family: var(--font-code);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.conv-stat-label {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Mini progress bar under each stat */
+.conv-mini-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.conv-mini-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+/* ========================================
+   3. CLAIM JOURNEY MAP
+   (track individual claims across rounds)
+   ======================================== */
+
+.claim-journey-map {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.journey-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.journey-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.journey-title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.journey-title-text {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.journey-title-sub {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.journey-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.journey-filter {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.journey-filter:hover { background: rgba(255, 255, 255, 0.04); color: var(--text-secondary); }
+.journey-filter.active { background: var(--accent-primary-dim); color: var(--accent-primary); border-color: rgba(59, 130, 246, 0.3); }
+
+/* Round column headers */
+.journey-round-headers {
+  display: grid;
+  grid-template-columns: 220px repeat(3, 1fr) 110px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.journey-col-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.journey-col-label:first-child { text-align: left; }
+.journey-col-label:last-child { text-align: right; }
+
+/* Individual claim lanes */
+.journey-lanes {
+  padding: 8px 0;
+}
+
+.journey-lane {
+  display: grid;
+  grid-template-columns: 220px repeat(3, 1fr) 110px;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+  transition: background 0.15s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.journey-lane:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.journey-lane:last-child { border-bottom: none; }
+
+/* Double-click hint on hover */
+.journey-lane .lane-claim-text::after {
+  content: ' (double-click to expand)';
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-style: normal;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.journey-lane:hover .lane-claim-text::after {
+  opacity: 0.5;
+}
+
+/* Expanded state */
+.journey-lane.expanded {
+  background: rgba(59, 130, 246, 0.03);
+  border-bottom-color: transparent;
+}
+
+.journey-lane.expanded .lane-claim-text {
+  -webkit-line-clamp: unset;
+  display: block;
+  color: var(--text-secondary);
+}
+
+.journey-lane.expanded .lane-claim-text::after {
+  content: '';
+}
+
+/* Claim identity column */
+.lane-claim {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 16px;
+}
+
+.lane-claim-id {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.lane-claim-text {
+  font-family: var(--font-content);
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-style: italic;
+}
+
+.lane-claim-source {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Verdict node in each round column */
+.lane-round-cell {
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.verdict-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.verdict-node:hover {
+  transform: scale(1.15);
+}
+
+.verdict-node.strong {
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid var(--verdict-strong);
+  color: var(--verdict-strong);
+}
+
+.verdict-node.weak {
+  background: rgba(234, 179, 8, 0.15);
+  border: 2px solid var(--verdict-weak);
+  color: var(--verdict-weak);
+}
+
+.verdict-node.flawed {
+  background: rgba(239, 68, 68, 0.15);
+  border: 2px solid var(--verdict-flawed);
+  color: var(--verdict-flawed);
+}
+
+.verdict-node.empty {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Connecting lines between verdict nodes */
+.lane-connector {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 22px);
+  width: calc(100% - 44px);
+  height: 3px;
+  transform: translateY(-50%);
+  z-index: 1;
+  border-radius: 2px;
+}
+
+.lane-connector.strong-to-strong { background: var(--verdict-strong); opacity: 0.25; }
+.lane-connector.flawed-to-weak { background: linear-gradient(90deg, var(--verdict-flawed), var(--verdict-weak)); opacity: 0.4; }
+.lane-connector.flawed-to-strong { background: linear-gradient(90deg, var(--verdict-flawed), var(--verdict-strong)); opacity: 0.4; }
+.lane-connector.weak-to-strong { background: linear-gradient(90deg, var(--verdict-weak), var(--verdict-strong)); opacity: 0.4; }
+.lane-connector.weak-to-weak { background: var(--verdict-weak); opacity: 0.25; }
+.lane-connector.strong-to-weak { background: linear-gradient(90deg, var(--verdict-strong), var(--verdict-weak)); opacity: 0.4; }
+
+/* Outcome column */
+.lane-outcome {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.outcome-badge {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+
+.outcome-badge.resolved {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.outcome-badge.persistent {
+  background: var(--verdict-weak-dim);
+  color: var(--verdict-weak);
+}
+
+.outcome-badge.stable {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.outcome-trend {
+  font-size: 16px;
+  line-height: 1;
+}
+
+
+/* ========================================
+   4. EXPANDED LANE DETAIL
+   (shows full context when a claim lane is clicked)
+   ======================================== */
+
+.lane-detail {
+  grid-column: 1 / -1;
+  background: rgba(255, 255, 255, 0.015);
+  border-top: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-glass);
+  padding: 20px 24px;
+  animation: slideDown 0.3s ease;
+  display: none;
+}
+
+.lane-detail.visible {
+  display: block;
+}
+
+/* Full claim text block inside expanded detail */
+.lane-detail-claim-full {
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  background: rgba(59, 130, 246, 0.04);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 10px;
+}
+
+.lane-detail-claim-full-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.lane-detail-claim-full-id {
+  font-family: var(--font-code);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.lane-detail-claim-full-source {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.lane-detail-claim-full-text {
+  font-family: var(--font-content);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; padding: 0 24px; }
+  to { opacity: 1; max-height: 500px; }
+}
+
+.lane-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.lane-detail-round {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+}
+
+.detail-round-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-verdict {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 5px;
+}
+
+.detail-verdict.strong { color: var(--verdict-strong); background: var(--verdict-strong-dim); }
+.detail-verdict.weak { color: var(--verdict-weak); background: var(--verdict-weak-dim); }
+.detail-verdict.flawed { color: var(--verdict-flawed); background: var(--verdict-flawed-dim); }
+
+.detail-evaluators {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-evaluator {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.detail-ev-model {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  min-width: 80px;
+}
+
+.detail-ev-verdict {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-ev-verdict.strong { color: var(--verdict-strong); }
+.detail-ev-verdict.weak { color: var(--verdict-weak); }
+.detail-ev-verdict.flawed { color: var(--verdict-flawed); }
+
+.detail-ev-reason {
+  font-family: var(--font-content);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+
+/* ========================================
+   5. ROUND COMPARISON CARDS
+   (compact "what changed" between rounds)
+   ======================================== */
+
+.round-comparison {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  gap: 0;
+  align-items: center;
+}
+
+.comparison-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+}
+
+.comparison-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.comparison-round-tag {
+  font-family: var(--font-code);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+}
+
+.comparison-claim-count {
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.comparison-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comparison-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comparison-bar-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  width: 60px;
+  text-align: right;
+}
+
+.comparison-bar-label.strong { color: var(--verdict-strong); }
+.comparison-bar-label.weak { color: var(--verdict-weak); }
+.comparison-bar-label.flawed { color: var(--verdict-flawed); }
+
+.comparison-bar-track {
+  flex: 1;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.comparison-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 600;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.comparison-bar-fill.strong { background: var(--verdict-strong-dim); color: var(--verdict-strong); }
+.comparison-bar-fill.weak { background: var(--verdict-weak-dim); color: var(--verdict-weak); }
+.comparison-bar-fill.flawed { background: var(--verdict-flawed-dim); color: var(--verdict-flawed); }
+
+/* Arrow connector between comparison cards */
+.comparison-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.comparison-arrow-line {
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--verdict-strong));
+  border-radius: 2px;
+  position: relative;
+}
+
+.comparison-arrow-line::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid var(--verdict-strong);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.comparison-arrow-label {
+  font-family: var(--font-code);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+
+/* ========================================
+   COMPARISON: BEFORE / AFTER
+   ======================================== */
+
+.before-after {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 40px;
+}
+
+.ba-section {
+  position: relative;
+}
+
+.ba-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 6px 16px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.ba-label.before {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--verdict-flawed);
+}
+
+.ba-label.after {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.ba-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  min-height: 200px;
+}
+
+/* Annotation pointing to specific issues */
+.annotation {
+  position: relative;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.annotation.problem {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: var(--text-secondary);
+}
+
+.annotation.solution {
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  color: var(--text-secondary);
+}
+
+.annotation-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+
+/* ========================================
+   6. CHAIRMAN'S CORRECTED DRAFT
+   (final document after deliberation)
+   ======================================== */
+
+.corrected-draft-section {
+  background: var(--bg-card);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(168, 85, 247, 0.04);
+}
+
+.corrected-draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 28px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(251, 191, 36, 0.06) 100%);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.12);
+}
+
+.draft-banner-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-stage4), var(--accent-chairman));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+}
+
+.draft-banner-info {
+  flex: 1;
+}
+
+.draft-banner-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--accent-stage4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draft-banner-subtitle {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.draft-banner-model {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px 14px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.draft-copy-btn {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  background: rgba(168, 85, 247, 0.08);
+  color: var(--accent-stage4);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.draft-copy-btn:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* Stats bar below banner */
+.draft-stats-bar {
+  display: flex;
+  gap: 24px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.draft-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.draft-stat-icon {
+  font-size: 14px;
+}
+
+.draft-stat-value {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* Document body */
+.draft-document {
+  padding: 32px 28px;
+  font-family: var(--font-content);
+  font-size: 15px;
+  line-height: 1.8;
+  color: #e2e8f0;
+}
+
+.draft-document h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 28px 0 14px;
+}
+
+.draft-document h2:first-child {
+  margin-top: 0;
+}
+
+.draft-document p {
+  margin-bottom: 14px;
+}
+
+/* Inline revision markers */
+.marker-revised {
+  display: inline;
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin: 0 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.marker-new {
+  display: inline;
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin: 0 4px;
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* Highlighted text following a marker */
+.revised-text {
+  background: rgba(245, 158, 11, 0.06);
+  border-bottom: 1px dashed rgba(245, 158, 11, 0.3);
+  padding-bottom: 1px;
+}
+
+.new-text {
+  background: rgba(34, 197, 94, 0.06);
+  border-bottom: 1px dashed rgba(34, 197, 94, 0.3);
+  padding-bottom: 1px;
+}
+
+/* Claims addressed summary at the end */
+.draft-claims-summary {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-glass);
+}
+
+.draft-claims-summary-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-stage4);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draft-claim-ref {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.draft-claim-ref:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.draft-claim-ref-id {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 28px;
+}
+
+.draft-claim-ref-action {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 5px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.draft-claim-ref-action.revised {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.draft-claim-ref-action.added {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.draft-claim-ref-action.removed {
+  background: var(--verdict-flawed-dim);
+  color: var(--verdict-flawed);
+}
+
+.draft-claim-ref-action.kept {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.draft-claim-ref-text {
+  font-family: var(--font-content);
+  color: var(--text-muted);
+  flex: 1;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .convergence-dashboard {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .journey-round-headers,
+  .journey-lane {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .journey-round-headers { display: none; }
+  .lane-round-cell .lane-connector { display: none; }
+
+  .round-comparison {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .comparison-arrow { transform: rotate(90deg); }
+
+  .before-after {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .lane-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="mockup-wrapper">
+
+  <!-- ============================================
+       MOCKUP HEADER
+       ============================================ -->
+  <div class="mockup-header">
+    <span class="mockup-label">Design Mockup</span>
+    <h1>Multi-Round Deliberation & Claim Evolution</h1>
+    <p>Redesigned UI for tracking how claims evolve across debate rounds</p>
+  </div>
+
+
+  <!-- ============================================
+       BEFORE / AFTER COMPARISON
+       ============================================ -->
+  <div class="section-label">Current vs Proposed</div>
+
+  <div class="before-after">
+    <div class="ba-section">
+      <span class="ba-label before">Current Design</span>
+      <div class="ba-card">
+        <div class="annotation problem">
+          <span class="annotation-icon">&#x26A0;</span>
+          <div><strong>RoundNavigator:</strong> Passive dots with no data. Can't tell what happened in each round or navigate to round details.</div>
+        </div>
+        <div class="annotation problem">
+          <span class="annotation-icon">&#x26A0;</span>
+          <div><strong>ClaimEvolution bars:</strong> Shows aggregate strong/contested counts per round as stacked bars, but no individual claim tracking. Can't answer "What happened to claim C2?"</div>
+        </div>
+        <div class="annotation problem">
+          <span class="annotation-icon">&#x26A0;</span>
+          <div><strong>Flat contested list:</strong> All contested claims from all rounds are dumped in one list. No visual threading shows how the same claim was treated across rounds.</div>
+        </div>
+        <div class="annotation problem">
+          <span class="annotation-icon">&#x26A0;</span>
+          <div><strong>No convergence visualization:</strong> Just a text label "Converged" with no sense of how close the council was to consensus at each step.</div>
+        </div>
+        <div class="annotation problem">
+          <span class="annotation-icon">&#x26A0;</span>
+          <div><strong>No round deltas:</strong> Can't see what changed between rounds (how many claims were resolved, which flipped).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ba-section">
+      <span class="ba-label after">Proposed Redesign</span>
+      <div class="ba-card">
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Deliberation Progress Rail:</strong> Vertical timeline with rich round cards showing vitals (strong/weak/flawed counts) and delta chips ("2 claims resolved").</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Claim Journey Map:</strong> Swimlane visualization tracking each claim individually across rounds. Colored verdict nodes connected by gradient lines show trajectories at a glance.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Convergence Ring:</strong> Radial progress gauge showing consensus percentage, with breakdowns of strong/contested/rounds-completed.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Round Comparison View:</strong> Side-by-side bar charts showing before/after verdict distribution with arrow connectors highlighting progression.</div>
+        </div>
+        <div class="annotation solution">
+          <span class="annotation-icon">&#x2714;</span>
+          <div><strong>Expandable Detail:</strong> Click any claim lane to see per-evaluator verdicts and reasoning for each round inline.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <hr class="section-divider">
+
+
+  <!-- ============================================
+       1. CONVERGENCE DASHBOARD
+       ============================================ -->
+  <div class="section-label">Convergence Dashboard</div>
+
+  <div class="convergence-dashboard">
+    <div class="convergence-ring-container">
+      <div class="convergence-ring">
+        <svg viewBox="0 0 120 120">
+          <!-- Track -->
+          <circle class="ring-track" cx="60" cy="60" r="50"></circle>
+          <!-- Progress (87% = ~273 of 314 circumference) -->
+          <circle class="ring-progress" cx="60" cy="60" r="50"
+            stroke="url(#ringGrad)"
+            stroke-dasharray="314"
+            stroke-dashoffset="41">
+          </circle>
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#22c55e" />
+              <stop offset="100%" style="stop-color:#6ee7b7" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="ring-center-label">
+          <div class="ring-pct">87%</div>
+          <div class="ring-pct-label">Consensus</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="convergence-stats">
+      <div class="convergence-stat-row">
+        <div class="conv-stat-icon strong-bg">&#x2714;</div>
+        <div class="conv-stat-detail">
+          <div class="conv-stat-value">13 / 15</div>
+          <div class="conv-stat-label">Claims reached strong consensus</div>
+          <div class="conv-mini-bar">
+            <div class="conv-mini-bar-fill" style="width: 87%; background: var(--verdict-strong);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="convergence-stat-row">
+        <div class="conv-stat-icon contested-bg">&#x26A0;</div>
+        <div class="conv-stat-detail">
+          <div class="conv-stat-value">2</div>
+          <div class="conv-stat-label">Claims still contested after 3 rounds</div>
+          <div class="conv-mini-bar">
+            <div class="conv-mini-bar-fill" style="width: 13%; background: var(--verdict-flawed);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="convergence-stat-row">
+        <div class="conv-stat-icon rounds-bg">&#x27F3;</div>
+        <div class="conv-stat-detail">
+          <div class="conv-stat-value">3 rounds</div>
+          <div class="conv-stat-label">Converged at round 3 (max configured: 4)</div>
+          <div class="conv-mini-bar">
+            <div class="conv-mini-bar-fill" style="width: 75%; background: var(--accent-primary);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <hr class="section-divider">
+
+
+  <!-- ============================================
+       2. DELIBERATION PROGRESS RAIL
+       ============================================ -->
+  <div class="section-label">Deliberation Progress Rail</div>
+
+  <div class="deliberation-rail">
+
+    <!-- Round 1 -->
+    <div class="rail-round">
+      <div class="rail-node completed">R1</div>
+      <div class="rail-card">
+        <div class="rail-card-top">
+          <div class="rail-round-info">
+            <span class="rail-round-title">Round 1 &mdash; Initial Assessment</span>
+            <span class="rail-round-duration">12.4s</span>
+          </div>
+          <div class="rail-vitals">
+            <div class="vital">
+              <span class="vital-dot strong"></span>
+              <span class="vital-num">8</span>
+              <span class="vital-label">strong</span>
+            </div>
+            <div class="vital">
+              <span class="vital-dot weak"></span>
+              <span class="vital-num">4</span>
+              <span class="vital-label">weak</span>
+            </div>
+            <div class="vital">
+              <span class="vital-dot flawed"></span>
+              <span class="vital-num">3</span>
+              <span class="vital-label">flawed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round 2 -->
+    <div class="rail-round">
+      <div class="rail-node completed">R2</div>
+      <div class="rail-card">
+        <div class="rail-card-top">
+          <div class="rail-round-info">
+            <span class="rail-round-title">Round 2 &mdash; Peer Revision</span>
+            <span class="rail-round-duration">14.8s</span>
+          </div>
+          <div class="rail-vitals">
+            <div class="vital">
+              <span class="vital-dot strong"></span>
+              <span class="vital-num">11</span>
+              <span class="vital-label">strong</span>
+            </div>
+            <div class="vital">
+              <span class="vital-dot weak"></span>
+              <span class="vital-num">2</span>
+              <span class="vital-label">weak</span>
+            </div>
+            <div class="vital">
+              <span class="vital-dot flawed"></span>
+              <span class="vital-num">2</span>
+              <span class="vital-label">flawed</span>
+            </div>
+          </div>
+        </div>
+        <div class="rail-delta">
+          <span class="delta-chip resolved"><span class="delta-arrow">&#x2191;</span> 3 claims resolved</span>
+          <span class="delta-chip upgraded"><span class="delta-arrow">&#x2197;</span> 2 weak&#x2192;strong</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round 3 (Active / Final) -->
+    <div class="rail-round">
+      <div class="rail-node completed">R3</div>
+      <div class="rail-card active-round">
+        <div class="rail-card-top">
+          <div class="rail-round-info">
+            <span class="rail-round-title">Round 3 &mdash; Final Convergence</span>
+            <span class="rail-round-duration">11.2s</span>
+          </div>
+          <div class="rail-vitals">
+            <div class="vital">
+              <span class="vital-dot strong"></span>
+              <span class="vital-num">13</span>
+              <span class="vital-label">strong</span>
+            </div>
+            <div class="vital">
+              <span class="vital-dot weak"></span>
+              <span class="vital-num">1</span>
+              <span class="vital-label">weak</span>
+            </div>
+            <div class="vital">
+              <span class="vital-dot flawed"></span>
+              <span class="vital-num">1</span>
+              <span class="vital-label">flawed</span>
+            </div>
+          </div>
+        </div>
+        <div class="rail-delta">
+          <span class="delta-chip resolved"><span class="delta-arrow">&#x2191;</span> 2 claims resolved</span>
+          <span class="delta-chip new-contested"><span class="delta-arrow">&#x2193;</span> 1 persistent</span>
+        </div>
+        <div class="rail-convergence">
+          <span class="convergence-check">&#x2714;</span>
+          Council converged &mdash; 87% consensus reached
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <hr class="section-divider">
+
+
+  <!-- ============================================
+       3. CLAIM JOURNEY MAP
+       ============================================ -->
+  <div class="section-label">Claim Journey Map</div>
+
+  <div class="claim-journey-map">
+    <div class="journey-header">
+      <div class="journey-title">
+        <div class="journey-title-icon">&#x1F4CA;</div>
+        <div>
+          <div class="journey-title-text">Claim Evolution Across Rounds</div>
+          <div class="journey-title-sub">Track how each claim's verdict changed through deliberation</div>
+        </div>
+      </div>
+      <div class="journey-filters">
+        <button class="journey-filter active">All</button>
+        <button class="journey-filter">Changed</button>
+        <button class="journey-filter">Contested</button>
+      </div>
+    </div>
+
+    <div class="journey-round-headers">
+      <span class="journey-col-label">Claim</span>
+      <span class="journey-col-label">Round 1</span>
+      <span class="journey-col-label">Round 2</span>
+      <span class="journey-col-label">Round 3</span>
+      <span class="journey-col-label">Outcome</span>
+    </div>
+
+    <div class="journey-lanes">
+
+      <!-- Claim A1: flawed -> weak -> strong (RESOLVED) -->
+      <div class="journey-lane" data-claim="A1" ondblclick="toggleDetail('A1')">
+        <div class="lane-claim">
+          <span class="lane-claim-id">A1</span>
+          <span class="lane-claim-text">"Canada's data sovereignty laws require all government data to be stored within Canadian borders"</span>
+          <span class="lane-claim-source">gpt-4.1</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node flawed" title="Flawed: Overly broad, not all govt data">FLW</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node weak" title="Weak: Partially corrected but still ambiguous">WK</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong" title="Strong: Properly scoped to classified data">STR</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-trend">&#x2728;</span>
+          <span class="outcome-badge resolved">Resolved</span>
+        </div>
+      </div>
+      <div class="lane-detail" id="detail-A1">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim A1</span>
+            <span class="lane-detail-claim-full-source">Source: gpt-4.1</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;Canada's data sovereignty laws require all government data to be stored within Canadian borders. Under federal and provincial regulations, any data classified as sensitive or personally identifiable must reside exclusively on Canadian soil, with no exceptions for cloud replication or disaster recovery across international boundaries.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 1 <span class="detail-verdict flawed">Flawed</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict flawed">flawed</span><span class="detail-ev-reason">Overly broad: PIPEDA doesn't require all govt data to stay in Canada</span></div>
+              <div class="detail-evaluator"><span class="detail-ev-model">gemini-2.5</span><span class="detail-ev-verdict flawed">flawed</span><span class="detail-ev-reason">"All government data" is too sweeping; only certain classifications</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 2 <span class="detail-verdict weak">Weak</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">Narrowed scope but still conflates federal/provincial requirements</span></div>
+              <div class="detail-evaluator"><span class="detail-ev-model">gemini-2.5</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Adequately corrected with provincial distinctions</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 3 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Properly scoped to Protected B+ classified data with correct citations</span></div>
+              <div class="detail-evaluator"><span class="detail-ev-model">gemini-2.5</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Accurate and well-qualified</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claim A2: strong -> strong -> strong (STABLE) -->
+      <div class="journey-lane" data-claim="A2" ondblclick="toggleDetail('A2')">
+        <div class="lane-claim">
+          <span class="lane-claim-id">A2</span>
+          <span class="lane-claim-text">"Multi-cloud strategies reduce vendor lock-in risk by 40-60%"</span>
+          <span class="lane-claim-source">gpt-4.1</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-badge stable">Stable</span>
+        </div>
+      </div>
+      <div class="lane-detail" id="detail-A2">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim A2</span>
+            <span class="lane-detail-claim-full-source">Source: gpt-4.1</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;Multi-cloud strategies reduce vendor lock-in risk by 40-60%, according to Gartner and Forrester research. Organizations operating across two or more cloud providers reported significantly higher flexibility in contract renegotiation and workload portability assessments.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 1 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Well-sourced, matches published analyst figures</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 2 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Consistent with industry consensus</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 3 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">No objections across all rounds</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claim B1: flawed -> strong (RESOLVED in R2) -->
+      <div class="journey-lane" data-claim="B1" ondblclick="toggleDetail('B1')">
+        <div class="lane-claim">
+          <span class="lane-claim-id">B1</span>
+          <span class="lane-claim-text">"Latency overhead of sovereign cloud is negligible for most enterprise workloads"</span>
+          <span class="lane-claim-source">claude-sonnet-4</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node flawed" title="Flawed: Depends heavily on workload type">FLW</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong" title="Strong: Added proper qualifications">STR</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-trend">&#x2728;</span>
+          <span class="outcome-badge resolved">Resolved</span>
+        </div>
+      </div>
+      <div class="lane-detail" id="detail-B1">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim B1</span>
+            <span class="lane-detail-claim-full-source">Source: claude-sonnet-4</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;Latency overhead of sovereign cloud is negligible for most enterprise workloads. For typical CRUD operations and batch processing, the additional 2-5ms introduced by in-country routing is well within acceptable bounds. However, high-frequency trading and real-time streaming applications may experience meaningful degradation.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 1 <span class="detail-verdict flawed">Flawed</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict flawed">flawed</span><span class="detail-ev-reason">Blanket "negligible" ignores real-time workloads entirely</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 2 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Added proper workload-type qualifications</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 3 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Well-scoped, no further objections</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claim B2: weak -> weak -> strong -->
+      <div class="journey-lane" data-claim="B2" ondblclick="toggleDetail('B2')">
+        <div class="lane-claim">
+          <span class="lane-claim-id">B2</span>
+          <span class="lane-claim-text">"PIPEDA compliance can be achieved with standard cloud encryption"</span>
+          <span class="lane-claim-source">claude-sonnet-4</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node weak">WK</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node weak">WK</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-trend">&#x2728;</span>
+          <span class="outcome-badge resolved">Resolved</span>
+        </div>
+      </div>
+      <div class="lane-detail" id="detail-B2">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim B2</span>
+            <span class="lane-detail-claim-full-source">Source: claude-sonnet-4</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;PIPEDA compliance can be achieved with standard cloud encryption. AES-256 encryption at rest and TLS 1.3 in transit, combined with proper key management through a Canadian-hosted HSM, satisfies the technical safeguard requirements under PIPEDA Principle 7. Additional measures such as tokenization may be required for particularly sensitive health or financial records.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 1 <span class="detail-verdict weak">Weak</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">Missing key management context; encryption alone is insufficient</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 2 <span class="detail-verdict weak">Weak</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">HSM mention helps but doesn't address data residency for keys</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 3 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Now includes Canadian-hosted HSM + sector-specific caveats</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claim C1: flawed -> flawed -> weak (PERSISTENT) -->
+      <div class="journey-lane" data-claim="C1" ondblclick="toggleDetail('C1')" style="background: rgba(239, 68, 68, 0.02);">
+        <div class="lane-claim">
+          <span class="lane-claim-id">C1</span>
+          <span class="lane-claim-text">"Kubernetes federation fully solves multi-region failover without application changes"</span>
+          <span class="lane-claim-source">gemini-2.5-pro</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node flawed">FLW</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node flawed">FLW</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node weak">WK</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-badge persistent">Persistent</span>
+        </div>
+      </div>
+
+      <!-- Expanded detail for C1 (visible by default for demo) -->
+      <div class="lane-detail visible" id="detail-C1">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim C1</span>
+            <span class="lane-detail-claim-full-source">Source: gemini-2.5-pro</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;Kubernetes federation fully solves multi-region failover without application changes. Organizations can deploy KubeFed across multiple regions and achieve automatic failover with zero application-level modifications, as the federation control plane handles all routing, DNS, and state replication transparently.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">
+              Round 1
+              <span class="detail-verdict flawed">Flawed</span>
+            </div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">gpt-4.1</span>
+                <span class="detail-ev-verdict flawed">flawed</span>
+                <span class="detail-ev-reason">K8s federation requires app-level awareness for state management</span>
+              </div>
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">claude-sonnet</span>
+                <span class="detail-ev-verdict flawed">flawed</span>
+                <span class="detail-ev-reason">DNS-based failover introduces partition risks that need app handling</span>
+              </div>
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">llama-4</span>
+                <span class="detail-ev-verdict weak">weak</span>
+                <span class="detail-ev-reason">Partially true for stateless workloads, but overstated for stateful</span>
+              </div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">
+              Round 2
+              <span class="detail-verdict flawed">Flawed</span>
+            </div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">gpt-4.1</span>
+                <span class="detail-ev-verdict flawed">flawed</span>
+                <span class="detail-ev-reason">Still claims "fully solves" despite revision; needs qualification</span>
+              </div>
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">claude-sonnet</span>
+                <span class="detail-ev-verdict weak">weak</span>
+                <span class="detail-ev-reason">Added caveats but the core claim remains too strong</span>
+              </div>
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">llama-4</span>
+                <span class="detail-ev-verdict weak">weak</span>
+                <span class="detail-ev-reason">Improved but still overpromises on zero-change failover</span>
+              </div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">
+              Round 3
+              <span class="detail-verdict weak">Weak</span>
+            </div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">gpt-4.1</span>
+                <span class="detail-ev-verdict weak">weak</span>
+                <span class="detail-ev-reason">Better scoped but still implies more automation than exists</span>
+              </div>
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">claude-sonnet</span>
+                <span class="detail-ev-verdict strong">strong</span>
+                <span class="detail-ev-reason">Now properly scoped to stateless workloads with caveats</span>
+              </div>
+              <div class="detail-evaluator">
+                <span class="detail-ev-model">llama-4</span>
+                <span class="detail-ev-verdict weak">weak</span>
+                <span class="detail-ev-reason">Acceptable with reservations; the qualifier helps</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claim C2: weak -> strong -> strong -->
+      <div class="journey-lane" data-claim="C2" ondblclick="toggleDetail('C2')">
+        <div class="lane-claim">
+          <span class="lane-claim-id">C2</span>
+          <span class="lane-claim-text">"Sovereign cloud costs 2-3x more than equivalent public cloud deployments"</span>
+          <span class="lane-claim-source">gemini-2.5-pro</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node weak">WK</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node strong">STR</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-trend">&#x2728;</span>
+          <span class="outcome-badge resolved">Resolved</span>
+        </div>
+      </div>
+      <div class="lane-detail" id="detail-C2">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim C2</span>
+            <span class="lane-detail-claim-full-source">Source: gemini-2.5-pro</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;Sovereign cloud costs 2-3x more than equivalent public cloud deployments. Based on 2024 pricing analysis from IDC, Canadian sovereign IaaS providers charge approximately 2.1-2.8x the equivalent AWS/Azure/GCP list price for comparable compute and storage tiers, driven by lower economies of scale and compliance overhead.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 1 <span class="detail-verdict weak">Weak</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">Range is plausible but no source cited; varies wildly by workload</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 2 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Added IDC citation and narrowed to IaaS pricing</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 3 <span class="detail-verdict strong">Strong</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict strong">strong</span><span class="detail-ev-reason">Well-supported with industry data</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claim D1: flawed -> weak -> flawed (PERSISTENT) -->
+      <div class="journey-lane" data-claim="D1" ondblclick="toggleDetail('D1')" style="background: rgba(239, 68, 68, 0.02);">
+        <div class="lane-claim">
+          <span class="lane-claim-id">D1</span>
+          <span class="lane-claim-text">"Open-source LLMs can match proprietary models for all government NLP tasks"</span>
+          <span class="lane-claim-source">llama-4-maverick</span>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node flawed">FLW</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node weak">WK</div>
+        </div>
+        <div class="lane-round-cell">
+          <div class="verdict-node flawed">FLW</div>
+        </div>
+        <div class="lane-outcome">
+          <span class="outcome-badge persistent">Persistent</span>
+        </div>
+      </div>
+      <div class="lane-detail" id="detail-D1">
+        <div class="lane-detail-claim-full">
+          <div class="lane-detail-claim-full-header">
+            <span class="lane-detail-claim-full-id">Claim D1</span>
+            <span class="lane-detail-claim-full-source">Source: llama-4-maverick</span>
+          </div>
+          <div class="lane-detail-claim-full-text">
+            &ldquo;Open-source LLMs can match proprietary models for all government NLP tasks. Models like LLaMA-3, Mistral, and Falcon have demonstrated comparable performance on standard NLP benchmarks including summarization, classification, and entity extraction, making them viable drop-in replacements for GPT-4 and Claude in government workflows requiring data sovereignty.&rdquo;
+          </div>
+        </div>
+        <div class="lane-detail-grid">
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 1 <span class="detail-verdict flawed">Flawed</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict flawed">flawed</span><span class="detail-ev-reason">"All tasks" is demonstrably false; OSS models lag on complex reasoning</span></div>
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict flawed">flawed</span><span class="detail-ev-reason">Benchmark parity doesn't equal production parity; ignores RLHF gap</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 2 <span class="detail-verdict weak">Weak</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">Softened to "many tasks" but still overstates readiness</span></div>
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">Better but "viable drop-in" is still too strong for safety-critical use</span></div>
+            </div>
+          </div>
+          <div class="lane-detail-round">
+            <div class="detail-round-label">Round 3 <span class="detail-verdict flawed">Flawed</span></div>
+            <div class="detail-evaluators">
+              <div class="detail-evaluator"><span class="detail-ev-model">gpt-4.1</span><span class="detail-ev-verdict flawed">flawed</span><span class="detail-ev-reason">Reverted to "can match" language; fundamentally misleading</span></div>
+              <div class="detail-evaluator"><span class="detail-ev-model">claude-sonnet</span><span class="detail-ev-verdict weak">weak</span><span class="detail-ev-reason">Still lacks nuance on where OSS models genuinely fall short</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <hr class="section-divider">
+
+
+  <!-- ============================================
+       4. ROUND COMPARISON VIEW
+       ============================================ -->
+  <div class="section-label">Round Comparison View</div>
+
+  <div class="round-comparison">
+    <div class="comparison-card">
+      <div class="comparison-card-header">
+        <span class="comparison-round-tag">Round 1</span>
+        <span class="comparison-claim-count">15 claims</span>
+      </div>
+      <div class="comparison-bars">
+        <div class="comparison-bar-row">
+          <span class="comparison-bar-label strong">Strong</span>
+          <div class="comparison-bar-track">
+            <div class="comparison-bar-fill strong" style="width: 53%">8</div>
+          </div>
+        </div>
+        <div class="comparison-bar-row">
+          <span class="comparison-bar-label weak">Weak</span>
+          <div class="comparison-bar-track">
+            <div class="comparison-bar-fill weak" style="width: 27%">4</div>
+          </div>
+        </div>
+        <div class="comparison-bar-row">
+          <span class="comparison-bar-label flawed">Flawed</span>
+          <div class="comparison-bar-track">
+            <div class="comparison-bar-fill flawed" style="width: 20%">3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison-arrow">
+      <div class="comparison-arrow-line"></div>
+      <span class="comparison-arrow-label">3 rounds</span>
+    </div>
+
+    <div class="comparison-card">
+      <div class="comparison-card-header">
+        <span class="comparison-round-tag">Round 3</span>
+        <span class="comparison-claim-count">15 claims</span>
+      </div>
+      <div class="comparison-bars">
+        <div class="comparison-bar-row">
+          <span class="comparison-bar-label strong">Strong</span>
+          <div class="comparison-bar-track">
+            <div class="comparison-bar-fill strong" style="width: 87%">13</div>
+          </div>
+        </div>
+        <div class="comparison-bar-row">
+          <span class="comparison-bar-label weak">Weak</span>
+          <div class="comparison-bar-track">
+            <div class="comparison-bar-fill weak" style="width: 7%">1</div>
+          </div>
+        </div>
+        <div class="comparison-bar-row">
+          <span class="comparison-bar-label flawed">Flawed</span>
+          <div class="comparison-bar-track">
+            <div class="comparison-bar-fill flawed" style="width: 7%">1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <hr class="section-divider">
+
+
+  <!-- ============================================
+       5. CHAIRMAN'S CORRECTED DRAFT
+       ============================================ -->
+  <div class="section-label">Chairman's Corrected Draft</div>
+
+  <div class="corrected-draft-section">
+    <div class="corrected-draft-banner">
+      <div class="draft-banner-avatar">&#x1F4DD;</div>
+      <div class="draft-banner-info">
+        <div class="draft-banner-title">
+          <span>&#x1F451;</span> Chairman's Corrected Draft
+        </div>
+        <div class="draft-banner-subtitle">
+          The chairman has rewritten the document incorporating all corrections from 3 rounds of deliberation.
+          Changes are marked with <span class="marker-revised">Revised</span> and <span class="marker-new">New</span> inline.
+        </div>
+      </div>
+      <span class="draft-banner-model">claude-opus-4</span>
+      <button class="draft-copy-btn" onclick="this.textContent='Copied!'; setTimeout(() => this.innerHTML='&#x1F4CB; Copy Draft', 2000)">
+        &#x1F4CB; Copy Draft
+      </button>
+    </div>
+
+    <div class="draft-stats-bar">
+      <div class="draft-stat">
+        <span class="draft-stat-icon">&#x1F4CA;</span>
+        <span class="draft-stat-value">15</span> claims evaluated
+      </div>
+      <div class="draft-stat">
+        <span class="draft-stat-icon">&#x1F527;</span>
+        <span class="draft-stat-value">5</span> revisions applied
+      </div>
+      <div class="draft-stat">
+        <span class="draft-stat-icon">&#x2795;</span>
+        <span class="draft-stat-value">2</span> new sections added
+      </div>
+      <div class="draft-stat">
+        <span class="draft-stat-icon">&#x26A0;</span>
+        <span class="draft-stat-value">2</span> claims flagged with caveats
+      </div>
+    </div>
+
+    <div class="draft-document">
+      <h2>Cloud Sovereignty Strategy for Canadian Government Workloads</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">Canadian data sovereignty regulations require that Protected B and above classified government data
+        be stored and processed within Canadian borders, in accordance with the Treasury Board Directive on
+        Security Management and applicable provincial privacy legislation.</span>
+        This framework applies to federal departments handling sensitive personal information,
+        national security data, and classified communications.
+      </p>
+
+      <p>
+        Multi-cloud strategies reduce vendor lock-in risk by 40-60%, according to Gartner and Forrester
+        research. Organizations operating across two or more cloud providers reported significantly higher
+        flexibility in contract renegotiation and workload portability assessments. For Canadian federal
+        agencies, this translates to greater leverage during procurement cycles and reduced dependency on
+        any single hyperscaler's Canadian region availability.
+      </p>
+
+      <h2>Performance and Latency Considerations</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">For typical CRUD operations and batch processing workloads, the additional 2-5ms latency
+        introduced by in-country sovereign cloud routing is well within acceptable bounds. However,
+        high-frequency trading, real-time streaming, and latency-sensitive ML inference applications
+        may experience meaningful degradation</span> and should be evaluated on a case-by-case basis
+        before committing to a sovereign-only deployment model.
+      </p>
+
+      <p>
+        Sovereign cloud infrastructure from Canadian providers currently costs approximately 2.1-2.8x
+        the equivalent AWS/Azure/GCP list price for comparable IaaS compute and storage tiers (IDC, 2024),
+        driven by lower economies of scale and compliance overhead. Budget planning should account for this
+        premium as a cost of regulatory compliance rather than a pure infrastructure expense.
+      </p>
+
+      <h2>Compliance and Encryption</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">PIPEDA Principle 7 technical safeguard requirements can be met through AES-256 encryption at rest
+        and TLS 1.3 in transit, combined with key management through a Canadian-hosted Hardware Security
+        Module (HSM). For particularly sensitive health or financial records, additional measures such as
+        tokenization and field-level encryption may be required</span> to satisfy sector-specific regulations
+        including PHIPA and provincial equivalents.
+      </p>
+
+      <h2>Multi-Region Resilience</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">Kubernetes federation provides multi-region failover capabilities for stateless workloads,
+        handling DNS-based routing and replica scheduling across clusters. However, stateful applications
+        require application-level awareness for state management, and the federation control plane does
+        not transparently handle data replication or partition tolerance.</span>
+        Organizations should evaluate their workload mix before relying on KubeFed as a
+        complete DR solution.
+      </p>
+
+      <p>
+        <span class="marker-new">New</span>
+        <span class="new-text">For stateful workloads requiring sovereign multi-region resilience, organizations should implement
+        application-level consistency patterns (e.g., CRDTs, saga orchestration) alongside infrastructure
+        federation, rather than relying solely on Kubernetes federation capabilities.</span>
+      </p>
+
+      <h2>AI and NLP Workloads</h2>
+
+      <p>
+        <span class="marker-revised">Revised</span>
+        <span class="revised-text">Open-source LLMs such as LLaMA-3 and Mistral have demonstrated competitive performance on
+        standard NLP benchmarks for summarization, classification, and entity extraction. However, they
+        do not yet match proprietary models on complex multi-step reasoning, nuanced bilingual generation
+        (English/French), and safety-critical applications where RLHF-tuned guardrails are essential.</span>
+        Government agencies requiring data sovereignty for AI workloads should conduct task-specific
+        evaluations rather than assuming blanket parity.
+      </p>
+
+      <p>
+        <span class="marker-new">New</span>
+        <span class="new-text">A recommended approach is to deploy open-source models for well-defined, lower-risk NLP tasks
+        (document classification, keyword extraction, translation drafts) while retaining proprietary
+        model access through API gateways with data-residency controls for complex analytical tasks
+        requiring higher accuracy guarantees.</span>
+      </p>
+    </div>
+
+    <!-- Claims addressed summary -->
+    <div class="draft-document">
+      <div class="draft-claims-summary">
+        <div class="draft-claims-summary-title">
+          <span>&#x1F4CB;</span> Claims Addressed in This Draft
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-strong);">A1</span>
+          <span class="draft-claim-ref-action revised">Revised</span>
+          <span class="draft-claim-ref-text">Scoped to Protected B+ classified data per Treasury Board Directive</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--text-muted);">A2</span>
+          <span class="draft-claim-ref-action kept">Kept</span>
+          <span class="draft-claim-ref-text">Multi-cloud vendor lock-in figures maintained (strong consensus)</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-strong);">B1</span>
+          <span class="draft-claim-ref-action revised">Revised</span>
+          <span class="draft-claim-ref-text">Added workload-type qualifications for latency claims</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-strong);">B2</span>
+          <span class="draft-claim-ref-action revised">Revised</span>
+          <span class="draft-claim-ref-text">Added Canadian HSM requirement and sector-specific caveats for PIPEDA</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-weak);">C1</span>
+          <span class="draft-claim-ref-action revised">Revised</span>
+          <span class="draft-claim-ref-text">Scoped K8s federation to stateless workloads; added caveat for stateful apps</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--text-muted);">C2</span>
+          <span class="draft-claim-ref-action kept">Kept</span>
+          <span class="draft-claim-ref-text">Sovereign cloud pricing data maintained with IDC citation</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-flawed);">D1</span>
+          <span class="draft-claim-ref-action revised">Revised</span>
+          <span class="draft-claim-ref-text">Replaced blanket parity claim with task-specific assessment guidance</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-strong);">&#x2795;</span>
+          <span class="draft-claim-ref-action added">New</span>
+          <span class="draft-claim-ref-text">Added stateful workload resilience patterns (CRDTs, sagas)</span>
+        </div>
+
+        <div class="draft-claim-ref">
+          <span class="draft-claim-ref-id" style="color: var(--verdict-strong);">&#x2795;</span>
+          <span class="draft-claim-ref-action added">New</span>
+          <span class="draft-claim-ref-text">Added hybrid OSS/proprietary model deployment recommendation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================
+     JAVASCRIPT: Double-click to expand claims
+     ============================================ -->
+<script>
+function toggleDetail(claimId) {
+  const detail = document.getElementById('detail-' + claimId);
+  const lane = document.querySelector('[data-claim="' + claimId + '"]');
+  if (!detail || !lane) return;
+
+  const isVisible = detail.classList.contains('visible');
+
+  // Close all open details first
+  document.querySelectorAll('.lane-detail.visible').forEach(d => d.classList.remove('visible'));
+  document.querySelectorAll('.journey-lane.expanded').forEach(l => l.classList.remove('expanded'));
+
+  // Toggle the clicked one (if it wasn't already open)
+  if (!isVisible) {
+    detail.classList.add('visible');
+    lane.classList.add('expanded');
+    // Scroll into view smoothly
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// Filter buttons
+document.querySelectorAll('.journey-filter').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.journey-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const filter = btn.textContent.trim().toLowerCase();
+    document.querySelectorAll('.journey-lane').forEach(lane => {
+      if (filter === 'all') {
+        lane.style.display = '';
+      } else if (filter === 'changed') {
+        const nodes = lane.querySelectorAll('.verdict-node');
+        const verdicts = Array.from(nodes).map(n => n.textContent.trim());
+        const allSame = verdicts.every(v => v === verdicts[0]);
+        lane.style.display = allSame ? 'none' : '';
+      } else if (filter === 'contested') {
+        const outcome = lane.querySelector('.outcome-badge');
+        if (!outcome) { lane.style.display = ''; return; }
+        lane.style.display = outcome.classList.contains('persistent') ? '' : 'none';
+      }
+    });
+    // Also hide/show detail panels
+    document.querySelectorAll('.lane-detail').forEach(d => {
+      const id = d.id.replace('detail-', '');
+      const parentLane = document.querySelector('[data-claim="' + id + '"]');
+      if (parentLane && parentLane.style.display === 'none') {
+        d.classList.remove('visible');
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>

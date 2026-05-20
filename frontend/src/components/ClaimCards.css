@@ -376,175 +376,439 @@
 }
 
 /* ========================================
-   Claim Evolution
+   Claim Journey Map
    ======================================== */
 
-.claim-evolution {
+.journey-map {
   margin-top: 24px;
-  padding: 24px;
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
-  border-radius: 14px;
-  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
 }
 
-.claim-evolution-header {
+/* --- Header --- */
+.journey-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.journey-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
 }
 
-.claim-evolution-icon { font-size: 22px; }
+.journey-title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
 
-.claim-evolution-title {
+.journey-title-text {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-/* --- Round Bars --- */
-.claim-evolution-rounds {
+.journey-title-sub {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* --- Filter Buttons --- */
+.journey-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.journey-filter {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.journey-filter:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.journey-filter.active {
+  background: var(--accent-primary-dim);
+  color: var(--accent-primary);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* --- Column Headers --- */
+.journey-round-headers {
+  display: grid;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.journey-col-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.journey-col-label:first-child { text-align: left; }
+.journey-col-label:last-child { text-align: right; }
+
+/* --- Claim Lanes --- */
+.journey-lanes {
+  padding: 8px 0;
+}
+
+.journey-lane {
+  display: grid;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+  transition: background 0.15s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.journey-lane:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.journey-lane:last-child { border-bottom: none; }
+
+.journey-lane.persistent-bg {
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.journey-lane.expanded {
+  background: rgba(59, 130, 246, 0.03);
+  border-bottom-color: transparent;
+}
+
+/* Claim identity column */
+.lane-claim {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 16px;
+}
+
+.lane-claim-id {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.lane-claim-text {
+  font-family: var(--font-content);
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-style: italic;
+}
+
+.journey-lane.expanded .lane-claim-text {
+  -webkit-line-clamp: unset;
+  display: block;
+  color: var(--text-secondary);
+}
+
+.lane-claim-source {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* --- Verdict Nodes --- */
+.lane-round-cell {
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.verdict-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.verdict-node:hover {
+  transform: scale(1.15);
+}
+
+.verdict-node.strong {
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid var(--verdict-strong);
+  color: var(--verdict-strong);
+}
+
+.verdict-node.weak {
+  background: rgba(234, 179, 8, 0.15);
+  border: 2px solid var(--verdict-weak);
+  color: var(--verdict-weak);
+}
+
+.verdict-node.flawed {
+  background: rgba(239, 68, 68, 0.15);
+  border: 2px solid var(--verdict-flawed);
+  color: var(--verdict-flawed);
+}
+
+.verdict-node.empty {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+/* --- Outcome Column --- */
+.lane-outcome {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.outcome-badge {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+
+.outcome-badge.resolved {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.outcome-badge.persistent {
+  background: var(--verdict-weak-dim);
+  color: var(--verdict-weak);
+}
+
+.outcome-badge.stable {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.outcome-trend {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* --- Expanded Lane Detail --- */
+.lane-detail {
+  background: rgba(255, 255, 255, 0.015);
+  border-top: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-glass);
+  padding: 20px 24px;
+  animation: laneSlideDown 0.3s ease;
+}
+
+.lane-detail.visible {
+  display: block;
+}
+
+@keyframes laneSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Full claim text card */
+.lane-detail-claim-full {
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  background: rgba(59, 130, 246, 0.04);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 10px;
+}
+
+.lane-detail-claim-full-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.lane-detail-claim-full-id {
+  font-family: var(--font-code);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.lane-detail-claim-full-source {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.lane-detail-claim-full-text {
+  font-family: var(--font-content);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+/* Per-round evaluator grid */
+.lane-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.lane-detail-round {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+}
+
+.detail-round-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-verdict {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 5px;
+}
+
+.detail-verdict.strong { color: var(--verdict-strong); background: var(--verdict-strong-dim); }
+.detail-verdict.weak { color: var(--verdict-weak); background: var(--verdict-weak-dim); }
+.detail-verdict.flawed { color: var(--verdict-flawed); background: var(--verdict-flawed-dim); }
+.detail-verdict.unknown { color: var(--text-muted); background: rgba(255, 255, 255, 0.04); }
+
+.detail-evaluators {
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.evolution-round-header {
+.detail-evaluator {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-
-.evolution-round-badge {
-  font-family: var(--font-code);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 3px 12px;
-  border-radius: 5px;
-  min-width: 68px;
-  text-align: center;
-}
-
-.evolution-round-stats {
-  font-family: var(--font-code);
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.evolution-bar-container {
-  display: flex;
-  height: 40px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-glass);
-}
-
-.evolution-bar {
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  font-family: var(--font-code);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.evolution-bar.strong {
-  background: var(--verdict-strong-dim);
-  color: var(--verdict-strong);
-}
-
-.evolution-bar.contested {
-  background: var(--verdict-flawed-dim);
-  color: var(--verdict-flawed);
-}
-
-.evolution-arrow {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 18px;
-  padding: 6px 0;
-  opacity: 0.3;
-}
-
-/* --- Contested Claims Detail --- */
-.claim-evolution-contested {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-glass);
-}
-
-.evolution-contested-label {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--verdict-flawed);
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.evolution-contested-item {
-  display: grid;
-  grid-template-columns: 32px 36px 60px 1fr;
   align-items: baseline;
   gap: 10px;
-  padding: 10px 14px;
-  background: rgba(239, 68, 68, 0.03);
-  border: 1px solid rgba(239, 68, 68, 0.08);
-  border-radius: 10px;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.evolution-claim-id {
-  font-family: var(--font-code);
   font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
 }
 
-.evolution-claim-round {
+.detail-ev-model {
   font-family: var(--font-code);
   font-size: 10px;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2px 7px;
-  border-radius: 4px;
-  text-align: center;
+  min-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.evolution-claim-verdict {
+.detail-ev-verdict {
   font-family: var(--font-code);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 4px;
 }
 
-.evolution-claim-verdict.flawed {
-  color: var(--verdict-flawed);
-  background: var(--verdict-flawed-dim);
-}
+.detail-ev-verdict.strong { color: var(--verdict-strong); }
+.detail-ev-verdict.weak { color: var(--verdict-weak); }
+.detail-ev-verdict.flawed { color: var(--verdict-flawed); }
 
-.evolution-claim-verdict.weak {
-  color: var(--verdict-weak);
-  background: var(--verdict-weak-dim);
-}
-
-.evolution-claim-text {
+.detail-ev-reason {
   font-family: var(--font-content);
+  font-size: 12px;
   color: var(--text-muted);
-  font-style: italic;
   line-height: 1.4;
+}
+
+/* --- Empty State --- */
+.journey-empty {
+  padding: 24px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .journey-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .journey-round-headers { display: none; }
+
+  .journey-lane {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .lane-claim { padding-right: 0; }
+  .lane-outcome { justify-content: flex-start; }
+
+  .lane-detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- Simple Card (extraction-only) --- */

@@ -1,40 +1,253 @@
-.round-navigator {
+/* ========================================
+   Deliberation Progress Rail
+   Replaces the minimal RoundNavigator dots
+   ======================================== */
+
+.deliberation-rail {
+  position: relative;
+  padding-left: 56px;
+  margin-bottom: 16px;
+}
+
+/* Vertical connecting line */
+.deliberation-rail::before {
+  content: '';
+  position: absolute;
+  left: 23px;
+  top: 28px;
+  bottom: 28px;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--accent-primary) 0%,
+    rgba(59, 130, 246, 0.3) 40%,
+    var(--verdict-strong) 100%
+  );
+  border-radius: 1px;
+}
+
+.rail-round {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.rail-round:last-child { margin-bottom: 0; }
+
+/* Round node on the rail */
+.rail-node {
+  position: absolute;
+  left: -56px;
+  top: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-code);
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.rail-node.completed {
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid var(--verdict-strong);
+  color: var(--verdict-strong);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+}
+
+.rail-node.active {
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  animation: rail-node-pulse 2s ease-in-out infinite;
+}
+
+.rail-node.pending {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+}
+
+@keyframes rail-node-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.35); }
+}
+
+/* Round card */
+.rail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.3s;
+}
+
+.rail-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: var(--shadow-soft);
+}
+
+.rail-card.active-round {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.06);
+}
+
+.rail-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  gap: 12px;
+}
+
+.rail-round-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 16px;
-  margin-bottom: 12px;
-  background: rgba(59, 130, 246, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  border-radius: 8px;
+  min-width: 0;
 }
 
-.round-dots {
+.rail-round-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* Verdict vitals */
+.rail-vitals {
   display: flex;
-  gap: 6px;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.round-dot {
-  width: 10px;
-  height: 10px;
+.vital {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vital-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: transparent;
-  transition: all 0.2s ease;
 }
 
-.round-dot.completed {
-  background: #3b82f6;
-  border-color: #3b82f6;
+.vital-dot.strong { background: var(--verdict-strong); }
+.vital-dot.weak { background: var(--verdict-weak); }
+.vital-dot.flawed { background: var(--verdict-flawed); }
+
+.vital-num {
+  font-family: var(--font-code);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
-.round-dot.active {
-  border-color: #06b6d4;
-  box-shadow: 0 0 6px rgba(6, 182, 212, 0.5);
+.vital-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.round-label {
+/* Delta chips */
+.rail-delta {
+  padding: 0 18px 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delta-chip {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.delta-chip.resolved {
+  background: var(--verdict-strong-dim);
+  color: var(--verdict-strong);
+}
+
+.delta-chip.new-contested {
+  background: var(--verdict-flawed-dim);
+  color: var(--verdict-flawed);
+}
+
+.delta-chip.upgraded {
+  background: var(--verdict-weak-dim);
+  color: var(--verdict-weak);
+}
+
+.delta-arrow { font-size: 10px; }
+
+/* Convergence indicator */
+.rail-convergence {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: rgba(34, 197, 94, 0.05);
+  border-top: 1px solid rgba(34, 197, 94, 0.1);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--verdict-strong);
+  font-weight: 600;
+}
+
+.convergence-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .deliberation-rail {
+    padding-left: 44px;
+  }
+
+  .deliberation-rail::before {
+    left: 17px;
+  }
+
+  .rail-node {
+    left: -44px;
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+    top: 12px;
+  }
+
+  .rail-card-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .rail-vitals {
+    gap: 10px;
+  }
+
+  .vital-label { display: none; }
 }
