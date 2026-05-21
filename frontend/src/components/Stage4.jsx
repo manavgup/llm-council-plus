@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import Skeleton from './common/Skeleton';
 import { getModelVisuals, getShortModelName } from '../utils/modelHelpers';
 import ThinkBlockRenderer from './ThinkBlockRenderer';
@@ -183,7 +185,9 @@ export default function Stage4({ correctedDraft, startTime, endTime, rounds }) {
 
                 {/* Document body */}
                 <div className="draft-document markdown-content">
-                    <ThinkBlockRenderer content={markedContent} allowHtml />
+                    <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                        {markedContent}
+                    </ReactMarkdown>
                 </div>
 
                 {/* Claims Addressed Summary */}
